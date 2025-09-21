@@ -1,0 +1,38 @@
+/*
+ * CeeHealth
+ * Copyright (C) 2025 Chloe Eather
+ *
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef CEE_CARDIAC_MONITOR_CONFIG_H_
+#define CEE_CARDIAC_MONITOR_CONFIG_H_
+
+#define CARDIAC_MONITOR_VERSION_MAJOR @CardiacMonitor_VERSION_MAJOR@
+#define CARDIAC_MONITOR_VERSION_MINOR @CardiacMonitor_VERSION_MINOR@
+
+#cmakedefine01 BUILD_GLES
+#cmakedefine01 BUILD_GL
+#cmakedefine01 BUILD_HAL_DRM
+#cmakedefine01 BUILD_HAL_EGL_X11
+#cmakedefine01 BUILD_HAL_GLX
+#cmakedefine01 BUILD_HAL_I2C
+#cmakedefine01 BUILD_HAL_I2C_SIM
+
+#if (BUILD_GLES && BUILD_GL)
+#error "Cannot build both OpenGL and OpenGL ES at the same time"
+#endif
+
+#endif
+
