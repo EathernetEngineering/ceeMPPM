@@ -137,8 +137,10 @@ MPPM::MPPM() {
 		"\n"
 		"in vec4 v_Color;\n"
 		"\n"
+		"layout (location = 0) out vec4 fragColor;\n"
+		"\n"
 		"void main() {\n"
-		"	gl_FragColor = v_Color;\n"
+		"	fragColor = v_Color;\n"
 		"}\n");
 	if (m_Shader->Compile() != 0) {
 		throw std::runtime_error("Failed to compile and link shader");

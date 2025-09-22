@@ -238,11 +238,11 @@ int HALGfxDRMInit(struct HALGfx_DRM *gfx)
 
 #if BUILD_GLES
 	if ((glVersion = gladLoaderLoadGLES2()) == 0) {
-		CEE_ERROR("Failed to load GLES2");
+		CEE_ERROR("Failed to load OpenGL ES");
 		strncpy("ES ", msg, 3);
 #elif BUILD_GL
 	if ((glVersion = gladLoaderLoadGL()) == 0) {
-		CEE_ERROR("Failed to load GL");
+		CEE_ERROR("Failed to load OpenGL");
 #else
 	if (1) {
 #endif

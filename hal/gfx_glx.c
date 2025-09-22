@@ -18,6 +18,7 @@
 #include <gfx_glx.h>
 #include <log.h>
 #include <util.h>
+#include <config.h>
 
 #include <glad/gl.h>
 #include <glad/glx.h>
@@ -218,7 +219,7 @@ int HALGfxGlXCreateWindow(struct HALGfx_glx *gfx, int width, int height, const c
 
 	GLXWindow glxWindow = glXCreateWindow(gfx->xDisplay, fbConfig, gfx->window, 0);
 
-	if (!gfx->window) {
+	if (!glxWindow) {
 		xcb_destroy_window(gfx->connection, gfx->window);
 		glXDestroyContext(gfx->xDisplay, context);
 		CEE_ERROR("Failed to create window");
@@ -240,12 +241,12 @@ int HALGfxGlXCreateWindow(struct HALGfx_glx *gfx, int width, int height, const c
 	char msg[4] = { '\0', '\0', '\0', '\0'};
 
 #if BUILD_GLES
-	if ((gl_version = gladLoaderLoadGLES2()) == 0) {
-		CEE_ERROR("Failed to load GLES2");
+	if ((glVersion = gladLoaderLoadGLES2()) == 0) {
+		CEE_ERROR("Failed to load OpenGL ES");
 		strncpy("ES ", msg, 3);
 #elif BUILD_GL
-	if ((gl_version = gladLoaderLoadGL()) == 0) {
-		CEE_ERROR("Failed to load GL");
+	if ((glVersion = gladLoaderLoadGL()) == 0) {
+		CEE_ERROR("Failed to load OpenGL");
 #else
 	if (1) {
 #endif
