@@ -85,34 +85,64 @@ MPPM::MPPM() {
 
 	m_Shader = std::make_shared<Shader>(m_Renderer);
 #if BUILD_GLES
-	m_Shader->SetVertexSourceString(
-		"#version 100\n"
-		"\n"
-		"attribute vec4 a_Position;\n"
-		"attribute vec4 a_Color;\n"
-		"attribute vec2 a_UV;\n"
-		"\n"
-		"precision mediump float;\n"
-		"\n"
-		"uniform vec2 u_Viewport;\n"
-		"\n"
-		"varying vec4 v_Color;\n"
-		"\n"
-		"void main() {\n"
-		"	gl_Position = vec4(2.0 * a_Position.xy / u_Viewport.xy - 1.0, 0.0, 1.0);\n"
-		"	v_Color = a_Color;\n"
-		"}\n");
-	m_Shader->SetFragmentSourceString(
-		"#version 100\n"
-		"\n"
-		"precision mediump float;\n"
-		"\n"
-		"varying vec4 v_Color;\n"
-		"\n"
-		"void main() {\n"
-		// "	gl_FragColor = v_Color;\n"
-		"	gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n"
-		"}\n");
+	if (strstr(m_Renderer->GetVersionString().c_str(), "ES 2.0")) {
+		m_Shader->SetVertexSourceString(
+			"#version 100\n"
+			"\n"
+			"attribute vec4 a_Position;\n"
+			"attribute vec4 a_Color;\n"
+			"attribute vec2 a_UV;\n"
+			"\n"
+			"precision mediump float;\n"
+			"\n"
+			"uniform vec2 u_Viewport;\n"
+			"\n"
+			"varying vec4 v_Color;\n"
+			"\n"
+			"void main() {\n"
+			"	gl_Position = vec4(2.0 * a_Position.xy / u_Viewport.xy - 1.0, 0.0, 1.0);\n"
+			"	v_Color = a_Color;\n"
+			"}\n");
+		m_Shader->SetFragmentSourceString(
+			"#version 100\n"
+			"\n"
+			"precision mediump float;\n"
+			"\n"
+			"varying vec4 v_Color;\n"
+			"\n"
+			"void main() {\n"
+			// "	gl_FragColor = v_Color;\n"
+			"	gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n"
+			"}\n");
+	} else {
+		m_Shader->SetVertexSourceString(
+			"#version 320 es\n"
+			"\n"
+			"layout (location = 0) in vec4 a_Position;\n"
+			"layout (location = 1) in vec4 a_Color;\n"
+			"layout (location = 2) in vec2 a_UV;\n"
+			"\n"
+			"uniform vec2 u_Viewport;\n"
+			"\n"
+			"out vec4 v_Color;\n"
+			"\n"
+			"void main() {\n"
+			"	gl_Position = vec4(2.0 * a_Position.xy / u_Viewport.xy - 1.0, 0.0, 1.0);\n"
+			"	v_Color = a_Color;\n"
+			"}\n");
+		m_Shader->SetFragmentSourceString(
+			"#version 320 es\n"
+			"\n"
+			"precision mediump float;\n"
+			"\n"
+			"in vec4 v_Color;\n"
+			"\n"
+			"out vec4 fragColor;\n"
+			"\n"
+			"void main() {\n"
+			"	fragColor = v_Color;\n"
+			"}\n");
+	}
 	if (m_Shader->Compile() != 0) {
 		throw std::runtime_error("Failed to compile and link shader");
 	}
