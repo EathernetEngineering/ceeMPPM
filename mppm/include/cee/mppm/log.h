@@ -19,31 +19,46 @@
 #ifndef CEE_LOG_H_
 #define CEE_LOG_H_
 
-#include <memory>
-
 #include <spdlog/spdlog.h>
-#include <spdlog/fmt/ostr.h>
+
+#include <memory>
+#include <vector>
 
 namespace cee {
 class Log {
 public:
 
 	static void Init();
+	static void Shutdown();
 
 	static void AddLogger(std::shared_ptr<spdlog::logger> logger);
+	static void RemoveLogger(std::shared_ptr<spdlog::logger> logger);
 	static std::shared_ptr<spdlog::logger> GetLogger() { return s_Logger; }
+	static std::shared_ptr<spdlog::logger> GetCoreLogger() { return s_CoreLogger; }
+
+private:
+	static void RemoveDeadChildren();
 
 private:
 	static std::shared_ptr<spdlog::logger> s_Logger;
+	static std::shared_ptr<spdlog::logger> s_CoreLogger;
+	static std::vector<std::weak_ptr<spdlog::logger>> s_Children;
 };
 }
 
-#define CEE_DEBUG(...)       ::cee::Log::GetLogger()->debug(__VA_ARGS__)
-#define CEE_TRACE(...)       ::cee::Log::GetLogger()->trace(__VA_ARGS__)
-#define CEE_INFO(...)        ::cee::Log::GetLogger()->info(__VA_ARGS__)
-#define CEE_WARN(...)        ::cee::Log::GetLogger()->warn(__VA_ARGS__)
-#define CEE_ERROR(...)       ::cee::Log::GetLogger()->error(__VA_ARGS__)
-#define CEE_CRITICAL(...)    ::cee::Log::GetLogger()->critical(__VA_ARGS__)
+// #define CEE_DEBUG(...)       ::cee::Log::GetLogger()->debug(__VA_ARGS__)
+// #define CEE_TRACE(...)       ::cee::Log::GetLogger()->trace(__VA_ARGS__)
+// #define CEE_INFO(...)        ::cee::Log::GetLogger()->info(__VA_ARGS__)
+// #define CEE_WARN(...)        ::cee::Log::GetLogger()->warn(__VA_ARGS__)
+// #define CEE_ERROR(...)       ::cee::Log::GetLogger()->error(__VA_ARGS__)
+// #define CEE_CRITICAL(...)    ::cee::Log::GetLogger()->critical(__VA_ARGS__)
+
+#define CEE_CORE_DEBUG(...)       ::cee::Log::GetCoreLogger()->debug(__VA_ARGS__)
+#define CEE_CORE_TRACE(...)       ::cee::Log::GetCoreLogger()->trace(__VA_ARGS__)
+#define CEE_CORE_INFO(...)        ::cee::Log::GetCoreLogger()->info(__VA_ARGS__)
+#define CEE_CORE_WARN(...)        ::cee::Log::GetCoreLogger()->warn(__VA_ARGS__)
+#define CEE_CORE_ERROR(...)       ::cee::Log::GetCoreLogger()->error(__VA_ARGS__)
+#define CEE_CORE_CRITICAL(...)    ::cee::Log::GetCoreLogger()->critical(__VA_ARGS__)
 
 #endif
 

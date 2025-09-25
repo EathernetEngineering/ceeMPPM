@@ -20,9 +20,10 @@
 #include <cee/mppm/renderer.h>
 #include <cee/mppm/log.h>
 
-#include <format>
 #include <glad/gl.h>
 #include <glm/ext/matrix_transform.hpp>
+
+#include <fstream>
 #include <stdexcept>
 #include <string>
 
@@ -43,15 +44,15 @@ static int GetShaderStatus(GLuint shader, const std::string& stageName)
 		log.reserve(logLength + 1);
 		log.resize(logLength + 1);
 		glGetShaderInfoLog(shader, log.size(), nullptr, log.data());
-		CEE_WARN("Failed to compile {} shader:", stageName);
-		CEE_WARN("{}", log);
+		CEE_CORE_WARN("Failed to compile {} shader:", stageName);
+		CEE_CORE_WARN("{}", log);
 		return -1;
 	} else if (logLength) {
 		log.reserve(logLength + 1);
 		log.resize(logLength + 1);
 		glGetShaderInfoLog(shader, log.size(), nullptr, log.data());
-		CEE_DEBUG("GLSL compiler {} shader log:", stageName);
-		CEE_DEBUG("{}", log);
+		CEE_CORE_DEBUG("GLSL compiler {} shader log:", stageName);
+		CEE_CORE_DEBUG("{}", log);
 	}
 	return 0;
 }
@@ -69,15 +70,15 @@ static int GetProgramStatus(GLuint prgram)
 		log.reserve(logLength + 1);
 		log.resize(logLength + 1);
 		glGetProgramInfoLog(prgram, log.size(), nullptr, log.data());
-		CEE_WARN("Failed to link program:");
-		CEE_WARN("{}", log);
+		CEE_CORE_WARN("Failed to link program:");
+		CEE_CORE_WARN("{}", log);
 		return -1;
 	} else if (logLength) {
 		log.reserve(logLength + 1);
 		log.resize(logLength + 1);
 		glGetProgramInfoLog(prgram, log.size(), nullptr, log.data());
-		CEE_DEBUG("GLSL linker log:");
-		CEE_DEBUG("{}", log);
+		CEE_CORE_DEBUG("GLSL linker log:");
+		CEE_CORE_DEBUG("{}", log);
 	}
 	return 0;
 }
@@ -144,11 +145,11 @@ int Shader::Compile()
 	const char *vshaderSource = m_VertexSource.c_str(), *fshaderSource = m_FragmentSource.c_str(); 
 
 	if (!(vshader = glCreateShader(GL_VERTEX_SHADER))) {
-		CEE_ERROR("Failed to create gl vertex shader. glGetError(): 0x{:X}", glGetError());
+		CEE_CORE_ERROR("Failed to create gl vertex shader. glGetError(): 0x{:X}", glGetError());
 		return -1;
 	}
 	if (!(fshader = glCreateShader(GL_FRAGMENT_SHADER))) {
-		CEE_ERROR("Failed to create gl fragement shader. glGetError(): 0x{:X}", glGetError());
+		CEE_CORE_ERROR("Failed to create gl fragement shader. glGetError(): 0x{:X}", glGetError());
 		glDeleteShader(vshader);
 		return -1;
 	}
@@ -174,7 +175,7 @@ int Shader::Compile()
 	if (!(m_Program = glCreateProgram())) {
 		glDeleteShader(vshader);
 		glDeleteShader(fshader);
-		CEE_ERROR("Failed to create gl program. glGetError(): 0x{:X}", glGetError());
+		CEE_CORE_ERROR("Failed to create gl program. glGetError(): 0x{:X}", glGetError());
 		return -1;
 	}
 	glAttachShader(m_Program, vshader);
@@ -229,7 +230,7 @@ std::string Shader::ReadFile(const std::string &path)
 	std::string fileContents;
 	std::ifstream file(path);
 	if (!file.is_open()) {
-		CEE_WARN("Failed to open file {}", path);
+		CEE_CORE_WARN("Failed to open file {}", path);
 		return {};
 	}
 
@@ -242,7 +243,7 @@ std::string Shader::ReadFile(const std::string &path)
 
 	file.read(fileContents.data(), size);
 	if (file.fail()) {
-		CEE_WARN("Failed to read file {}", path);
+		CEE_CORE_WARN("Failed to read file {}", path);
 		return {};
 	}
 
@@ -403,7 +404,7 @@ int Shader::ValidateShaderVersion(const std::string& shaderSource) {
 		poundPos = shaderSource.find_first_of('#', newlinePos);
 		newlinePos = shaderSource.find_first_of('\n', poundPos);
 		if ((poundPos == shaderSource.npos) || (newlinePos == shaderSource.npos)) {
-			CEE_WARN("Shaders without explicit version strings are not supported");
+			CEE_CORE_WARN("Shaders without explicit version strings are not supported");
 			return -1;
 		}
 		line = std::string_view(&shaderSource[poundPos], newlinePos - poundPos);
@@ -415,9 +416,9 @@ int Shader::ValidateShaderVersion(const std::string& shaderSource) {
 
 	auto versionNumPos = line.npos;
 	if ((versionNumPos = line.find_first_of("0123456789")) == line.npos) {
-		CEE_WARN("Invalid version string in shader:");
-		CEE_WARN("Line {}:", lineNum);
-		CEE_WARN(" >  ", line);
+		CEE_CORE_WARN("Invalid version string in shader:");
+		CEE_CORE_WARN("Line {}:", lineNum);
+		CEE_CORE_WARN(" >  ", line);
 		return -1;
 	}
 
@@ -426,9 +427,9 @@ int Shader::ValidateShaderVersion(const std::string& shaderSource) {
 	switch (m_glVersion) {
 		case glVersion::OpenGL_ES_2_0: {
 			if (version != 100) {
-				CEE_WARN("Incompatible glsl version");
-				CEE_WARN("Line {}:", lineNum);
-				CEE_WARN(" >  {}", line);
+				CEE_CORE_WARN("Incompatible glsl version");
+				CEE_CORE_WARN("Line {}:", lineNum);
+				CEE_CORE_WARN(" >  {}", line);
 				return -1;
 			}
 		} break;
@@ -447,14 +448,14 @@ int Shader::ValidateShaderVersion(const std::string& shaderSource) {
 		case glVersion::OpenGL_4_5:
 		case glVersion::OpenGL_4_6: {
 			if (version < 300) {
-				CEE_WARN("Incompatible glsl version");
-				CEE_WARN("Line {}:", lineNum);
-				CEE_WARN(" >  {}", line);
+				CEE_CORE_WARN("Incompatible glsl version");
+				CEE_CORE_WARN("Line {}:", lineNum);
+				CEE_CORE_WARN(" >  {}", line);
 				return -1;
 			}
 		} break;
 		default:
-			CEE_WARN("Shader has invalid version");
+			CEE_CORE_WARN("Shader has invalid version");
 			return -1;
 	}
 

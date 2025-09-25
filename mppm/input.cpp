@@ -75,7 +75,7 @@ int Input::Init() {
 	
 	s_XkbContext = xkb_context_new(XKB_CONTEXT_NO_DEFAULT_INCLUDES);
 	if (s_XkbContext == nullptr) {
-		CEE_ERROR("Failed to setup xkb context");
+		CEE_CORE_ERROR("Failed to setup xkb context");
 		return -1;
 	}
 
@@ -94,14 +94,14 @@ int Input::Init() {
 
 	s_XkbKeymap = xkb_keymap_new_from_names(s_XkbContext, nullptr, XKB_KEYMAP_COMPILE_NO_FLAGS);
 	if (s_XkbKeymap == nullptr) {
-		CEE_ERROR("Failed to compile keymap");
+		CEE_CORE_ERROR("Failed to compile keymap");
 		return -1;
 	}
 
 
 	ret = GetKeyboards();
 	if (ret < 0) {
-		CEE_ERROR("Failed to get keyboards");
+		CEE_CORE_ERROR("Failed to get keyboards");
 		goto out;
 	}
 
@@ -109,7 +109,7 @@ int Input::Init() {
 	s_Nfds++;
 	s_Fds = reinterpret_cast<pollfd*>(calloc(s_Nfds, sizeof(*s_Fds)));
 	if (s_Fds == nullptr) {
-		CEE_ERROR("Out of memory");
+		CEE_CORE_ERROR("Out of memory");
 		ret = -1;
 		goto out;
 	}
@@ -147,7 +147,7 @@ int Input::Poll() {
 		if (errno == EINTR) {
 			goto out;	
 		}
-		CEE_WARN("poll failed: {0}", strerror(errno));
+		CEE_CORE_WARN("poll failed: {0}", strerror(errno));
 		goto out;
 	}
 
@@ -178,7 +178,7 @@ int Input::GetKeyboards() {
 		return !fnmatch("event*", ent->d_name, 0);
 	}, alphasort);
 	if (nents < 0) {
-		CEE_ERROR("Couldn't scan /dev/input: {0}", strerror(errno));
+		CEE_CORE_ERROR("Couldn't scan /dev/input: {0}", strerror(errno));
 		return -1;
 	}
 
@@ -186,16 +186,16 @@ int Input::GetKeyboards() {
 		ret = NewKeyboard(ents[i], &kbd);
 		if (ret) {
 			if (ret == -EACCES) {
-				CEE_ERROR("Couldn't open /dev/input/{0}: {1}", ents[i]->d_name, strerror(-ret));
+				CEE_CORE_ERROR("Couldn't open /dev/input/{0}: {1}", ents[i]->d_name, strerror(-ret));
 				break;
 			}
 			if (ret == -ENOTSUP) {
-				//CEE_DEBUG("Couldn't open /dev/input/{0}: {1}. Skipping...", ents[i]->d_name, strerror(-ret));
+				//CEE_CORE_DEBUG("Couldn't open /dev/input/{0}: {1}. Skipping...", ents[i]->d_name, strerror(-ret));
 			}
 			continue;
 		}
 		if (kbd == nullptr) {
-			CEE_ERROR("kbd is nullptr");
+			CEE_CORE_ERROR("kbd is nullptr");
 			continue;
 		}
 		kbd->next = s_Keyboards;
@@ -208,7 +208,7 @@ int Input::GetKeyboards() {
 	free(ents);
 	
 	if (s_Keyboards == nullptr) {
-		CEE_ERROR("Couldn't find any keyboards");
+		CEE_CORE_ERROR("Couldn't find any keyboards");
 		return -1;
 	}
 
@@ -250,7 +250,7 @@ int Input::NewKeyboard(dirent *ent, Keyboard **out) {
 	
 	state = xkb_state_new(s_XkbKeymap);
 	if (state == nullptr) {
-		CEE_ERROR("Couldn't create state for {0}", path);
+		CEE_CORE_ERROR("Couldn't create state for {0}", path);
 		ret = -EFAULT;
 		goto err_fd;
 	}
@@ -331,7 +331,7 @@ int Input::ReadKeyboard(Keyboard *keyboard) {
 		}
 	}
 	if (len < 0 && errno != EWOULDBLOCK) {
-		CEE_ERROR("Couldn't read {0}: {1}", keyboard->path, strerror(errno));
+		CEE_CORE_ERROR("Couldn't read {0}: {1}", keyboard->path, strerror(errno));
 		return 1;
 	}
 	return 0;

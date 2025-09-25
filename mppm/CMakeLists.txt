@@ -40,13 +40,13 @@ elseif(BUILD_GL)
 endif()
 
 list(APPEND MPPM_PUBLIC_HEADERS
-	${CMAKE_CURRENT_SOURCE_DIR}/mppm.h
-	${CMAKE_CURRENT_SOURCE_DIR}/event.h
-	${CMAKE_CURRENT_SOURCE_DIR}/input.h
-	${CMAKE_CURRENT_SOURCE_DIR}/log.h
-	${CMAKE_CURRENT_SOURCE_DIR}/renderer.h
-	${CMAKE_CURRENT_SOURCE_DIR}/rng.h
-	${CMAKE_CURRENT_SOURCE_DIR}/shader.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/mppm.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/event.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/input.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/log.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/renderer.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/rng.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/shader.h
 )
 
 add_library(ceeMPPM ${MPPM_SOURCES})
@@ -55,7 +55,8 @@ set_target_properties(ceeMPPM
 	PROPERTIES
 	CXX_STANDARD 20
 	CXX_STANDARD_REQUIRED ON
-	PUBLIC_HEADER "${MPPM_PUBLIC_HEADERS}")
+	PUBLIC_HEADER "${MPPM_PUBLIC_HEADERS}"
+	PRIVATE_HEADER "${MPPM_PRIVATE_HEADERS}")
 
 target_include_directories(ceeMPPM PRIVATE ${MPPM_PRIVATE_INCLUDEDIRS})
 target_include_directories(ceeMPPM PUBLIC ${MPPM_PUBLIC_INCLUDEDIRS})

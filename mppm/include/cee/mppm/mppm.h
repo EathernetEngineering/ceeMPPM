@@ -30,7 +30,7 @@
 namespace cee {
 class MPPM {
 public:
-	MPPM();
+	MPPM(int argc, char *argv[]);
 	~MPPM();
 
 	int Run();

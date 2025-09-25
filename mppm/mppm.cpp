@@ -38,10 +38,12 @@
 namespace cee {
 MPPM* MPPM::s_Instance = nullptr;
 
-MPPM::MPPM() {
+MPPM::MPPM(int argc, char *argv[]) {
+	(void)argc, (void)argv; // Supress unused warning
 	if (s_Instance) {
-		std::fprintf(stderr, "More than one instance of cee::CardiacMonitor is not allowed.");
+		std::fprintf(stderr, "More than one instance of cee::MPPM is not allowed.");
 		std::exit(EXIT_FAILURE);
+		throw std::runtime_error("More than one instance of cee::MPPM is not allowed.");
 	}
 	s_Instance = this;
 	bool running = true;
@@ -72,14 +74,14 @@ MPPM::MPPM() {
 #endif
 
 	if (HALInit()) {
-		CEE_ERROR("Failed to initialize hardware abstration layer!");
+		CEE_CORE_ERROR("Failed to initialize hardware abstration layer!");
 		throw std::runtime_error("Failed to initialize hardware abstration layer!");
 	}
 
 	try {
 		m_Renderer = cee::Renderer::Create();
 	} catch (const std::runtime_error& e) {
-		CEE_ERROR("Renderer uninitialized!");
+		CEE_CORE_ERROR("Renderer uninitialized!");
 		throw std::runtime_error("Renderer uninitialized!");
 	}
 

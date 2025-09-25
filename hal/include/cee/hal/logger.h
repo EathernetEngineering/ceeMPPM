@@ -24,13 +24,15 @@ extern "C" {
 #endif
 enum LogLevel {
 	CEE_LOG_LEVEL_DEBUG = 0,
-	CEE_LOG_LEVEL_INFO = 1,
-	CEE_LOG_LEVEL_WARN = 2,
-	CEE_LOG_LEVEL_ERROR = 3,
-	CEE_LOG_LEVEL_CRITICAL = 4,
+	CEE_LOG_LEVEL_TRACE = 1,
+	CEE_LOG_LEVEL_INFO = 2,
+	CEE_LOG_LEVEL_WARN = 3,
+	CEE_LOG_LEVEL_ERROR = 4,
+	CEE_LOG_LEVEL_CRITICAL = 5,
 	CEE_LOG_ENUM_MAX = CEE_LOG_LEVEL_CRITICAL
 };
 void HALLogInit(void);
+void HALLogShutdown(void);
 void HALLogSetLevel(LogLevel level);
 #ifdef __cplusplus
 }

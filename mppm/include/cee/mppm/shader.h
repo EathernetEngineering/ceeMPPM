@@ -113,7 +113,7 @@ private:
 			} else if constexpr (n == 4) {
 				glUniform4f(location, args...);
 			} else {
-				CEE_ERROR("Unexpected shader uniform value count");
+				CEE_CORE_ERROR("Unexpected shader uniform value count");
 			}
 		} else if constexpr (st == ShaderType::INT) {
 			if constexpr (n == 1) {
@@ -125,17 +125,17 @@ private:
 			} else if constexpr (n == 4) {
 				glUniform4i(location, args...);
 			} else {
-				CEE_ERROR("Unexpected shader uniform value count");
+				CEE_CORE_ERROR("Unexpected shader uniform value count");
 			}
 		} else if constexpr (st == ShaderType::MAT) {
 			if constexpr (n == 1) {
 				const glm::mat4& mat = {args...};
 				glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(mat));
 			} else {
-				CEE_ERROR("Unexpected shader uniform value count");
+				CEE_CORE_ERROR("Unexpected shader uniform value count");
 			}
 		} else {
-			CEE_ERROR("Unexpected shader uniform type: {}", static_cast<uint16_t>(st));
+			CEE_CORE_ERROR("Unexpected shader uniform type: {}", static_cast<uint16_t>(st));
 		}
 	}
 

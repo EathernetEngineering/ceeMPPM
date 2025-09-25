@@ -36,18 +36,18 @@ GLESRenderer::GLESRenderer()
 	
 	m_HALGfx = HALGfxCreate();
 	if (m_HALGfx == NULL) {
-		CEE_ERROR("Failed to allocate graphics backend!");
+		CEE_CORE_ERROR("Failed to allocate graphics backend!");
 		throw std::runtime_error("Failed to allocate graphics backend!");;
 	}
 
 	if (HALGfxInit(m_HALGfx)) {
 		HALGfxDestroy(m_HALGfx);
-		CEE_ERROR("Failed to initialize graphics backend!");
+		CEE_CORE_ERROR("Failed to initialize graphics backend!");
 		throw std::runtime_error("Failed to initialize graphics backend!");;
 	}
 
 	m_VersionString = HALGfxGetVersionString(m_HALGfx);
-	CEE_INFO("Using OpenGL {}", m_VersionString);
+	CEE_CORE_INFO("Using OpenGL {}", m_VersionString);
 
 	glViewport(0, 0, HALGfxGetWidth(m_HALGfx), HALGfxGetHeight(m_HALGfx));
 
@@ -59,7 +59,7 @@ GLESRenderer::GLESRenderer()
 	m_Quads.vertices = reinterpret_cast<float*>(calloc((MAX_INDICES * 4) / 6, sizeof(Vertex)));
 	m_Quads.indices = reinterpret_cast<uint16_t*>(calloc(MAX_INDICES, sizeof(uint16_t)));
 	if (!m_Triangles.vertices || !m_Triangles.indices || !m_Quads.vertices || !m_Quads.indices) {
-		CEE_ERROR("Out of memory!");
+		CEE_CORE_ERROR("Out of memory!");
 		return;
 	}
 
@@ -74,7 +74,7 @@ GLESRenderer::GLESRenderer()
 	m_Quads.ebo = buffers[3];
 
 	if ((ec = glGetError()) != GL_NO_ERROR) {
-		CEE_ERROR("GL error: {0}", ec);
+		CEE_CORE_ERROR("GL error: {0}", ec);
 		throw std::runtime_error("");;
 	}
 
@@ -91,7 +91,7 @@ GLESRenderer::GLESRenderer()
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_INDICES * sizeof(uint16_t), nullptr, GL_DYNAMIC_DRAW);
 
 	if ((ec = glGetError()) != GL_NO_ERROR) {
-		CEE_ERROR("GL error: {0}", ec);
+		CEE_CORE_ERROR("GL error: {0}", ec);
 		throw std::runtime_error("GL error");;
 	}
 
@@ -117,7 +117,7 @@ GLESRenderer::~GLESRenderer() {
 
 void GLESRenderer::SwapBuffers() {
 	if (HALGfxPageFlip(m_HALGfx))
-		CEE_WARN("GLESRenderer::SwapBuffers() failed!");
+		CEE_CORE_WARN("GLESRenderer::SwapBuffers() failed!");
 }
 
 void GLESRenderer::Clear() {
@@ -207,7 +207,7 @@ void GLESRenderer::EndFrame() {
 	Flush();
 	GLenum ec;
 	if ((ec = glGetError()) != GL_NO_ERROR) {
-		CEE_DEBUG("error 0x{:X}", (int)ec);
+		CEE_CORE_DEBUG("error 0x{:X}", (int)ec);
 	}
 }
 }

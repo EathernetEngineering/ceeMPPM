@@ -25,20 +25,20 @@
 int main(int argc, char **argv) {
 	std::unique_ptr<cee::MPPM> app(nullptr);
 	try {
-		app = std::make_unique<cee::MPPM>();
-	} catch(const std::exception& e) {
+		app = std::make_unique<cee::MPPM>(argc, argv);
+	} catch(const std::runtime_error& e) {
 		fprintf(stderr, "Caught initialization exception:\n");
 		fprintf(stderr, "%s\n", e.what());
-		std::exit(0);
+		std::exit(EXIT_FAILURE);
 	}
 
 	int ret = 0;
 	try {
 		ret = app->Run();
-	} catch(const std::exception& e) {
+	} catch(const std::runtime_error& e) {
 		fprintf(stderr, "Caught runtime exception\n");
 		fprintf(stderr, "%s\n", e.what());
-		std::exit(0);
+		std::exit(EXIT_FAILURE);
 	}
 	app.reset();
 

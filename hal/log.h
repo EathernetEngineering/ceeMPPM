@@ -42,6 +42,7 @@ namespace hal {
 	class Log {
 	public:
 		static void Init();
+		static void Shutdown();
 
 		static std::shared_ptr<spdlog::logger> GetLogger() { return s_Logger; }
 

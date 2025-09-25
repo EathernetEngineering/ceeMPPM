@@ -247,7 +247,7 @@ int HALGfxEglXCreateWindow(struct HALGfx_egl_x *gfx, int width, int height, cons
 		return -1;
 	}
 
-	CEE_DEBUG("Loaded OpenGL %s%d.%d\n", msg, GLAD_VERSION_MAJOR(glVersion), GLAD_VERSION_MINOR(glVersion));
+	CEE_DEBUG("Loaded OpenGL %s%d.%d", msg, GLAD_VERSION_MAJOR(glVersion), GLAD_VERSION_MINOR(glVersion));
 	gfx->versionString = (const char *)glGetString(GL_VERSION);
 
 	glClearColor(0.f, 0.f, 0.f, 1.f);

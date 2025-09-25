@@ -39,18 +39,18 @@ OpenGLRenderer::OpenGLRenderer()
 	
 	m_HALGfx = HALGfxCreate();
 	if (m_HALGfx == NULL) {
-		CEE_ERROR("Failed to allocate graphics backend!");
+		CEE_CORE_ERROR("Failed to allocate graphics backend!");
 		throw std::runtime_error("Failed to allocate graphics backend!");
 	}
 
 	if (HALGfxInit(m_HALGfx)) {
 		HALGfxDestroy(m_HALGfx);
-		CEE_ERROR("Failed to initialize graphics backend!");
+		CEE_CORE_ERROR("Failed to initialize graphics backend!");
 		throw std::runtime_error("Failed to initialize graphics backend!");
 	}
 
 	m_VersionString = HALGfxGetVersionString(m_HALGfx);
-	CEE_INFO("Using OpenGL {}", m_VersionString);
+	CEE_CORE_INFO("Using OpenGL {}", m_VersionString);
 
 	glViewport(0, 0, HALGfxGetWidth(m_HALGfx), HALGfxGetHeight(m_HALGfx));
 
@@ -62,7 +62,7 @@ OpenGLRenderer::OpenGLRenderer()
 	m_Quads.vertices = reinterpret_cast<float*>(calloc((MAX_INDICES * 4) / 6, sizeof(Vertex)));
 	m_Quads.indices = reinterpret_cast<uint16_t*>(calloc(MAX_INDICES, sizeof(uint16_t)));
 	if (!m_Triangles.vertices || !m_Triangles.indices || !m_Quads.vertices || !m_Quads.indices) {
-		CEE_ERROR("Out of memory!");
+		CEE_CORE_ERROR("Out of memory!");
 		return;
 	}
 
@@ -77,7 +77,7 @@ OpenGLRenderer::OpenGLRenderer()
 	m_Quads.ebo = buffers[3];
 
 	if ((ec = glGetError()) != GL_NO_ERROR) {
-		CEE_ERROR("GL error: {0}", ec);
+		CEE_CORE_ERROR("GL error: {0}", ec);
 		throw std::runtime_error("GL error");
 	}
 
@@ -94,7 +94,7 @@ OpenGLRenderer::OpenGLRenderer()
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_INDICES * sizeof(uint16_t), nullptr, GL_DYNAMIC_DRAW);
 
 	if ((ec = glGetError()) != GL_NO_ERROR) {
-		CEE_ERROR("GL error: {0}", ec);
+		CEE_CORE_ERROR("GL error: {0}", ec);
 		throw std::runtime_error("GL error");
 	}
 
@@ -124,7 +124,7 @@ OpenGLRenderer::~OpenGLRenderer() {
 void OpenGLRenderer::SwapBuffers() {
 	// EGLBoolean ret = eglSwapBuffers(m_Display, m_Surface);
 	// if (ret != GL_TRUE) {
-	// 	CEE_ERROR("eglSwapBuffers failed: {0}", eglGetError());
+	// 	CEE_CORE_ERROR("eglSwapBuffers failed: {0}", eglGetError());
 	// }
 	HALGfxPageFlip(m_HALGfx);
 }

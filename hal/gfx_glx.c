@@ -172,7 +172,7 @@ int HALGfxGlXCreateWindow(struct HALGfx_glx *gfx, int width, int height, const c
 		CEE_ERROR("Failed to load GLX.");
 		return -1;
 	}
-	CEE_DEBUG("Loaded GLX %d.%d\n", GLAD_VERSION_MAJOR(glx_version), GLAD_VERSION_MINOR(glx_version));
+	CEE_DEBUG("Loaded GLX %d.%d", GLAD_VERSION_MAJOR(glx_version), GLAD_VERSION_MINOR(glx_version));
 
 	GLXFBConfig *fbConfigs = NULL;
 	int nfbConfigs = 0;
@@ -253,7 +253,7 @@ int HALGfxGlXCreateWindow(struct HALGfx_glx *gfx, int width, int height, const c
 		return -1;
 	}
 
-	CEE_DEBUG("Loaded OpenGL %s%d.%d\n", msg, GLAD_VERSION_MAJOR(glVersion), GLAD_VERSION_MINOR(glVersion));
+	CEE_DEBUG("Loaded OpenGL %s%d.%d", msg, GLAD_VERSION_MAJOR(glVersion), GLAD_VERSION_MINOR(glVersion));
 	gfx->versionString = (const char *)glGetString(GL_VERSION);
 
 	const char *wmProtocolsAtomName = "WM_PROTOCOLS";

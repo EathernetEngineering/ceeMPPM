@@ -35,9 +35,9 @@ namespace {
 			s_E = std::mt19937_64(seed.value_or(r()));
 
 			if (s_Initialized) {
-				CEE_WARN("RNG already initialized. Calling this function again will cause a seed reset.");
-				CEE_WARN("\tCalling this function again will cause a seed reset.");
-				CEE_WARN("\tTo avoid this message use cee::rng<T>::ResetSeed().");
+				CEE_CORE_DEBUG("RNG already initialized. Calling this function again will cause a seed reset.");
+				CEE_CORE_DEBUG("\tCalling this function again will cause a seed reset.");
+				CEE_CORE_DEBUG("\tTo avoid this message use cee::rng<T>::ResetSeed().");
 			}
 
 			s_Initialized = true;

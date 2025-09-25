@@ -102,7 +102,12 @@ static std::string Format(const char *fmt, va_list args)
 
 extern "C" void HALLogInit(void)
 {
-	::cee::hal::Log::Init();
+	cee::hal::Log::Init();
+}
+
+extern "C" void HALLogShutdown(void)
+{
+	cee::hal::Log::Shutdown();
 }
 
 extern "C" void HALLogSetLevel(LogLevel level)
@@ -110,6 +115,10 @@ extern "C" void HALLogSetLevel(LogLevel level)
 	spdlog::level::level_enum spdLevel = spdlog::level::trace;
 	switch (level) {
 		case CEE_LOG_LEVEL_DEBUG:
+			spdLevel = spdlog::level::debug;
+			break;
+
+		case CEE_LOG_LEVEL_TRACE:
 			spdLevel = spdlog::level::trace;
 			break;
 
@@ -271,6 +280,12 @@ namespace hal {
 
 
 		g_Initialized = true;
+	}
+
+	void Log::Shutdown()
+	{
+		spdlog::drop(s_Logger->name());
+		s_Logger.reset();
 	}
 
 	std::shared_ptr<spdlog::logger> GetLogger() { return Log::GetLogger(); }
