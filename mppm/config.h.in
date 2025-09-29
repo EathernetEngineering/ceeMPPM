@@ -16,11 +16,14 @@
  * with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CEE_CARDIAC_MONITOR_CONFIG_H_
-#define CEE_CARDIAC_MONITOR_CONFIG_H_
+#ifndef CEE_MPPM_CONFIG_H_
+#define CEE_MPPM_CONFIG_H_
 
-#define CARDIAC_MONITOR_VERSION_MAJOR @CardiacMonitor_VERSION_MAJOR@
-#define CARDIAC_MONITOR_VERSION_MINOR @CardiacMonitor_VERSION_MINOR@
+#define MPPM_VERSION_MAJOR @ceeMPPM_VERSION_MAJOR@
+#define MPPM_VERSION_MINOR @ceeMPPM_VERSION_MINOR@
+
+#cmakedefine01 CEE_ENABLE_ASSERTIONS
+#cmakedefine01 CEE_ENABLE_ASSERTIONS_RAISE
 
 #cmakedefine01 BUILD_GLES
 #cmakedefine01 BUILD_GL

@@ -17,7 +17,7 @@
  */
 
 #include <cee/mppm/renderer.h>
-#include <config.h>
+#include <cee/mppm/config.h>
 #if BUILD_GLES
 #include <glesRenderer.h>
 #elif BUILD_GL

@@ -64,6 +64,10 @@ function(add_cee_unittest)
 	elseif (CEE_FIND_GOOGLETEST)
 		target_link_libraries(${target} PRIVATE GTest::gtest_main)
 	endif()
+	set_target_properties(${target}
+		PROPERTIES
+		CXX_STANDARD 20
+		CXX_STANDARD_REQUIRED ON)
 	add_test(NAME cee_${target} COMMAND ${target})
 	if (DEFINED ARG_ENVIRNOMENT)
 		set_test_properties(cee_${target} PROPERTIES ENVIRONMENT ${ARG_ENVRIONMENT})
@@ -73,12 +77,14 @@ endfunction()
 
 set(MPPMTest_SOURCES
 	mppm_log.cpp
+	mppm_file.cpp
+	mppm_parse.cpp
 )
 
 add_cee_unittest(
 	TARGET mppm_unit_tests
 	SRCS ${MPPMTest_SOURCES}
 	LIBS ceeMPPM
-	INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/mppm
+	INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/mppm ${CMAKE_BINARY_DIR}/mppm
 )
 

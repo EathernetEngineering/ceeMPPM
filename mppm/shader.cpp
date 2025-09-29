@@ -19,11 +19,11 @@
 #include <cee/mppm/shader.h>
 #include <cee/mppm/renderer.h>
 #include <cee/mppm/log.h>
+#include <cee/mppm/parser.h>
 
 #include <glad/gl.h>
 #include <glm/ext/matrix_transform.hpp>
 
-#include <fstream>
 #include <stdexcept>
 #include <string>
 
@@ -99,38 +99,20 @@ Shader::~Shader()
 }
 
 
-int Shader::SetVertexSourceFile(const std::string &path)
+void Shader::SetVertexSource(GLSLParser<char> &&parser)
 {
-	m_VertexSource = ReadFile(path);
-	if (m_VertexSource.length() == 0)
-		return -1;
-	return 0;
+	m_VertexSource = std::move(parser);
 }
 
-int Shader::SetFragmentSourceFile(const std::string &path)
+void Shader::SetFragmentSource(GLSLParser<char> &&parser)
 {
-	m_FragmentSource = ReadFile(path);
-	if (m_FragmentSource.length() == 0)
-		return -1;
-	return 0;
-}
-
-void Shader::SetVertexSourceString(const std::string &source)
-{
-	m_VertexSource = source;
-}
-
-void Shader::SetFragmentSourceString(const std::string &source)
-{
-	m_FragmentSource = source;
+	m_FragmentSource = std::move(parser);
 }
 
 void Shader::FreeSourceStrings()
 {
-	m_VertexSource.clear();
-	m_VertexSource.shrink_to_fit();
-	m_FragmentSource.clear();
-	m_FragmentSource.shrink_to_fit();
+	m_VertexSource.Free();
+	m_FragmentSource.Free();
 }
 
 int Shader::Compile()
@@ -142,7 +124,8 @@ int Shader::Compile()
 		return ret;
 
 	GLuint vshader, fshader;
-	const char *vshaderSource = m_VertexSource.c_str(), *fshaderSource = m_FragmentSource.c_str(); 
+	const char *vshaderSource = m_VertexSource.String().c_str();
+	const char *fshaderSource = m_FragmentSource.String().c_str(); 
 
 	if (!(vshader = glCreateShader(GL_VERTEX_SHADER))) {
 		CEE_CORE_ERROR("Failed to create gl vertex shader. glGetError(): 0x{:X}", glGetError());
@@ -223,33 +206,6 @@ Shader& Shader::operator=(Shader&& other)
 	other.m_UniformLoacations = {};
 
 	return *this;
-}
-
-std::string Shader::ReadFile(const std::string &path)
-{
-	std::string fileContents;
-	std::ifstream file(path);
-	if (!file.is_open()) {
-		CEE_CORE_WARN("Failed to open file {}", path);
-		return {};
-	}
-
-	file.seekg(0, std::ios_base::end);
-	ssize_t size = file.tellg();
-	file.seekg(0);
-
-	fileContents.reserve(size + 1);
-	fileContents.resize(size + 1);
-
-	file.read(fileContents.data(), size);
-	if (file.fail()) {
-		CEE_CORE_WARN("Failed to read file {}", path);
-		return {};
-	}
-
-	file.close();
-	
-	return fileContents;
 }
 
 void Shader::GetVersionAndApi(std::shared_ptr<Renderer> renderer)
@@ -396,40 +352,40 @@ void Shader::GetVersionAndApi(std::shared_ptr<Renderer> renderer)
 	}
 }
 
-int Shader::ValidateShaderVersion(const std::string& shaderSource) {
-	std::string_view line;
-	int lineNum = 0;
-	auto poundPos = 0, newlinePos = 0;
-	do { 
-		poundPos = shaderSource.find_first_of('#', newlinePos);
-		newlinePos = shaderSource.find_first_of('\n', poundPos);
-		if ((poundPos == shaderSource.npos) || (newlinePos == shaderSource.npos)) {
-			CEE_CORE_WARN("Shaders without explicit version strings are not supported");
-			return -1;
-		}
-		line = std::string_view(&shaderSource[poundPos], newlinePos - poundPos);
-		if (line.find("version") != line.npos) {
-			break;
-		}
-		lineNum++;
-	} while (1);
-
-	auto versionNumPos = line.npos;
-	if ((versionNumPos = line.find_first_of("0123456789")) == line.npos) {
-		CEE_CORE_WARN("Invalid version string in shader:");
-		CEE_CORE_WARN("Line {}:", lineNum);
-		CEE_CORE_WARN(" >  ", line);
-		return -1;
-	}
-
-	int version = std::stoi(&line[versionNumPos]);
+int Shader::ValidateShaderVersion(const GLSLParser<char> &parser) {
+	// std::string_view line;
+	// int lineNum = 0;
+	// auto poundPos = 0, newlinePos = 0;
+	// do { 
+	// 	poundPos = shaderSource.find_first_of('#', newlinePos);
+	// 	newlinePos = shaderSource.find_first_of('\n', poundPos);
+	// 	if ((poundPos == shaderSource.npos) || (newlinePos == shaderSource.npos)) {
+	// 		CEE_CORE_WARN("Shaders without explicit version strings are not supported");
+	// 		return -1;
+	// 	}
+	// 	line = std::string_view(&shaderSource[poundPos], newlinePos - poundPos);
+	// 	if (line.find("version") != line.npos) {
+	// 		break;
+	// 	}
+	// 	lineNum++;
+	// } while (1);
+	//
+	// auto versionNumPos = line.npos;
+	// if ((versionNumPos = line.find_first_of("0123456789")) == line.npos) {
+	// 	CEE_CORE_WARN("Invalid version string in shader:");
+	// 	CEE_CORE_WARN("Line {}:", lineNum);
+	// 	CEE_CORE_WARN(" >  ", line);
+	// 	return -1;
+	// }
+	//
+	// int version = std::stoi(&line[versionNumPos]);
+	int version = parser.VersionNum();
 
 	switch (m_glVersion) {
 		case glVersion::OpenGL_ES_2_0: {
 			if (version != 100) {
 				CEE_CORE_WARN("Incompatible glsl version");
-				CEE_CORE_WARN("Line {}:", lineNum);
-				CEE_CORE_WARN(" >  {}", line);
+				CEE_CORE_WARN(" >  {}", parser.VersionString());
 				return -1;
 			}
 		} break;
@@ -449,13 +405,13 @@ int Shader::ValidateShaderVersion(const std::string& shaderSource) {
 		case glVersion::OpenGL_4_6: {
 			if (version < 300) {
 				CEE_CORE_WARN("Incompatible glsl version");
-				CEE_CORE_WARN("Line {}:", lineNum);
-				CEE_CORE_WARN(" >  {}", line);
+				CEE_CORE_WARN(" >  {}", parser.VersionString());
 				return -1;
 			}
 		} break;
 		default:
 			CEE_CORE_WARN("Shader has invalid version");
+			CEE_CORE_WARN(" >  {}", parser.VersionString());
 			return -1;
 	}
 

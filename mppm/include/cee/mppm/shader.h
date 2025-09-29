@@ -20,6 +20,7 @@
 #define CEE_SHADER_H_
 
 #include <cee/mppm/log.h>
+#include <cee/mppm/parser.h>
 
 #include <string>
 #include <unordered_map>
@@ -43,15 +44,12 @@ private:
 
 public:
 	Shader(std::shared_ptr<Renderer> renderer);
-	Shader(const Shader&) = delete;
+	Shader(const Shader &) = delete;
 	Shader(Shader&& other);
 	~Shader();
 
-	int SetVertexSourceFile(const std::string &path);
-	int SetFragmentSourceFile(const std::string &path);
-
-	void SetVertexSourceString(const std::string &source);
-	void SetFragmentSourceString(const std::string &source);
+	void SetVertexSource(GLSLParser<char> &&parser);
+	void SetFragmentSource(GLSLParser<char> &&parser);
 
 	void FreeSourceStrings();
 
@@ -70,11 +68,8 @@ public:
 	Shader& operator=(Shader&& other);
 
 private:
-	static std::string ReadFile(const std::string &path);
-
 	void GetVersionAndApi(std::shared_ptr<Renderer> renderer);
-
-	int ValidateShaderVersion(const std::string& shaderSource);
+	int ValidateShaderVersion(const GLSLParser<char> &parser);
 
 	GLuint GetUnifromLocation(const std::string &name);
 
@@ -166,8 +161,8 @@ private:
 
 	} m_glVersion;
 
-	std::string m_FragmentSource;
-	std::string m_VertexSource;
+	GLSLParser<char> m_FragmentSource;
+	GLSLParser<char> m_VertexSource;
 
 	GLuint m_Program;
 	std::unordered_map<std::string, GLuint> m_UniformLoacations;

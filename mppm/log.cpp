@@ -69,7 +69,9 @@ void Log::Shutdown()
 		RemoveLogger(child.lock());
 	}
 	spdlog::drop(s_Logger->name());
+	spdlog::drop(s_CoreLogger->name());
 	s_Logger.reset();
+	s_CoreLogger.reset();
 }
 
 void Log::AddLogger(std::shared_ptr<spdlog::logger> child)

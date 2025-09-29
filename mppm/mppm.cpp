@@ -21,7 +21,7 @@
 #include <cee/mppm/log.h>
 #include <cee/mppm/input.h>
 #include <cee/mppm/rng.h>
-#include <config.h>
+#include <cee/mppm/config.h>
 
 #include <cee/hal/hal.h>
 #include <cee/hal/logger.h>
@@ -85,6 +85,7 @@ MPPM::MPPM(int argc, char *argv[]) {
 		throw std::runtime_error("Renderer uninitialized!");
 	}
 
+	GLSLParser<char> vertexSource, fragmentSource;
 	m_Shader = std::make_shared<Shader>(m_Renderer);
 #if BUILD_GLES
 	if (strstr(m_Renderer->GetVersionString().c_str(), "ES 2.0")) {
@@ -149,7 +150,7 @@ MPPM::MPPM(int argc, char *argv[]) {
 		throw std::runtime_error("Failed to compile and link shader");
 	}
 #elif BUILD_GL
-	m_Shader->SetVertexSourceString(
+	vertexSource.Parse(std::string_view(
 		"#version 330 core\n"
 		"\n"
 		"layout (location = 0) in vec4 a_Position;\n"
@@ -163,8 +164,9 @@ MPPM::MPPM(int argc, char *argv[]) {
 		"void main() {\n"
 		"	gl_Position = vec4(2.0 * a_Position.xy / u_Viewport.xy - 1.0, 0.0, 1.0);\n"
 		"	v_Color = a_Color;\n"
-		"}\n");
-	m_Shader->SetFragmentSourceString(
+		"}\n"));
+	m_Shader->SetVertexSource(std::move(vertexSource));
+	fragmentSource.Parse(std::string_view(
 		"#version 330 core\n"
 		"\n"
 		"in vec4 v_Color;\n"
@@ -173,7 +175,8 @@ MPPM::MPPM(int argc, char *argv[]) {
 		"\n"
 		"void main() {\n"
 		"	fragColor = v_Color;\n"
-		"}\n");
+		"}\n"));
+	m_Shader->SetFragmentSource(std::move(fragmentSource));
 	if (m_Shader->Compile() != 0) {
 		throw std::runtime_error("Failed to compile and link shader");
 	}
