@@ -4,21 +4,6 @@
 [submodule "external/glm"]
 	path = external/glm
 	url = https://github.com/g-truc/glm.git
-[submodule "external/glslang"]
-	path = external/glslang
-	url = https://github.com/KhronosGroup/glslang.git
-[submodule "external/spirv-cross"]
-	path = external/spirv-cross
-	url = https://github.com/KhronosGroup/spirv-cross.git
-[submodule "external/spirv-tools"]
-	path = external/spirv-tools
-	url = https://github.com/KhronosGroup/SPIRV-Tools.git
-[submodule "external/spirv-headers"]
-	path = external/spirv-headers
-	url = https://github.com/KhronosGroup/SPIRV-Headers.git
-[submodule "external/effcee"]
-	path = external/effcee
-	url = https://github.com/google/effcee.git
 [submodule "external/abseil-cpp"]
 	path = external/abseil-cpp
 	url = https://github.com/abseil/abseil-cpp.git
