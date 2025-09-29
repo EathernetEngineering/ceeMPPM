@@ -16,19 +16,34 @@
  * with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CEE_GRID_LAYOUT_H_
-#define CEE_GRID_LAYOUT_H_
+#include <log.h>
+#include <cee/gui/logger.h>
 
-#include <cee/gui/layout.h>
-#include <cee/gui/widget.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
+#include <string>
 
 namespace cee {
 namespace gui {
-	class GridLayout : public Layout {
-	public:
-		void AddWigdet(std::shared_ptr<Widget> widget, int row, int column);
-	};
+	std::shared_ptr<spdlog::logger> Log::s_Logger;
+
+	void Log::Init()
+	{
+		s_Logger = std::make_shared<spdlog::logger>("GUI");
+		spdlog::register_logger(s_Logger);
+		s_Logger->set_level(spdlog::level::trace);
+		s_Logger->flush_on(spdlog::level::trace);
+	}
+
+	void Log::Shutdown()
+	{
+		spdlog::drop(s_Logger->name());
+		s_Logger.reset();
+	}
+
+	std::shared_ptr<spdlog::logger> GetLogger() { return Log::GetLogger(); }
 }
 }
 
-#endif
+

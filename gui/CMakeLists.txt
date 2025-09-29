@@ -24,28 +24,32 @@ list(APPEND GUI_LIBRARYDIRS /usr/lib)
 list(APPEND GUI_LIBRARIES spdlog::spdlog glad)
 
 list(APPEND GUI_SOURCES
-	gui.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/gui.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/guiRenderer.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/log.cpp
 )
 
 list(APPEND GUI_PUBLIC_HEADERS
-	include/cee/gui/cprocessordetection.h
-	include/cee/gui/gridLayout.h
-	include/cee/gui/gui.h
-	include/cee/gui/layout.h
-	include/cee/gui/object.h
-	include/cee/gui/types.h
-	include/cee/gui/widget.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/gui/gridLayout.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/gui/gui.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/gui/layout.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/gui/logger.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/gui/object.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/gui/widget.h
+)
+
+list(APPEND GUI_PRIVATE_HEADERS
+	${CMAKE_CURRENT_SOURCE_DIR}/log.h
 )
 
 add_library(ceeGUI ${GUI_SOURCES})
 
 set_target_properties(ceeGUI
 	PROPERTIES
-	C_STANDARD 17
-	C_STANDARD_REQUIRED ON
 	CXX_STANDARD 20
 	CXX_STANDARD_REQUIRED ON
-	PUBLIC_HEADER "${GUI_PUBLIC_HEADERS}")
+	PUBLIC_HEADER "${GUI_PUBLIC_HEADERS}"
+	PRIVATE_HEADER "${GUI_PRIVATE_HEADERS}")
 
 target_include_directories(ceeGUI PRIVATE ${GUI_PRIVATE_INCLUDEDIRS})
 target_include_directories(ceeGUI PUBLIC ${GUI_PUBLIC_INCLUDEDIRS})

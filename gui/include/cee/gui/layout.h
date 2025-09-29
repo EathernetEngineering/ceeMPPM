@@ -19,68 +19,31 @@
 #ifndef CEE_GUI_LAYOUT_H_
 #define CEE_GUI_LAYOUT_H_
 
-#include "gui.h"
-#include "types.h"
-#include "widget.h"
+#include <cee/gui/widget.h>
 
 #include <algorithm>
 #include <type_traits>
 
 namespace cee {
-namespace GUI {
-template<typename Enum> class Flags;
+namespace gui {
+	enum AlignmentFlag {
+		AlignLeft     = 0x0001,
+		AlignRight    = 0x0002,
+		AlignHCenter  = 0x0004,
+		AlignJustify  = 0x0008,
+		AlignTop      = 0x0020,
+		AlignBottom   = 0x0040,
+		AlignVCenter  = 0x0080,
+		AlignBaseline = 0x0100,
+		AlignCenter   = AlignVCenter | AlignHCenter
+	};
 
-class Flag {
-public:
-	constexpr inline Flag(int val) noexcept : i(val) {}
-	constexpr inline operator int() const noexcept { return i; }
-private:
-	int i;
-};
-
-class IncompatibleFlag {
-public:
-	constexpr inline explicit IncompatibleFlag(int i) noexcept;
-	constexpr inline operator int() const noexcept { return i; }
-private:
-	int i;
-};
-
-namespace ceePrivate {
-template<typename T> struct IsFlags : std::false_type {};
-template<typename E> struct IsFlags<Flags<E>> : std::true_type {};
-
-
-template<typename Enum>
-class FlagsStorage {
-	static_assert(sizeof(Enum) <= sizeof(int64_t), 
-	              "Only enumerations 64 bits or less are supported");
-	static_assert((std::is_enum<Enum>::value),
-	              "Flags is only usable on enumeration types.");
-
-	static constexpr size_t IntegerSize = (std::max)(sizeof(Enum), sizeof(int));
-	using Integers = Enum;
-};
+	class Layout : public Widget {
+	public:
+		Layout() = default;
+		~Layout() = default;
+	};
 }
-
-enum AlignmentFlag {
-	AlignLeft     = 0x0001,
-	AlignRight    = 0x0002,
-	AlignHCenter  = 0x0004,
-	AlignJustify  = 0x0008,
-	AlignTop      = 0x0020,
-	AlignBottom   = 0x0040,
-	AlignVCenter  = 0x0080,
-	AlignBaseline = 0x0100,
-	AlignCenter   = AlignVCenter | AlignHCenter
-};
-using Alignment = flags;
-}
-
-class Layout : public Widget {
-	Layout() = default;
-	~Layout() = default;
-};
 }
 
 #endif

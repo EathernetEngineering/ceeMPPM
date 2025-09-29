@@ -16,29 +16,34 @@
  * with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CEE_GUI_GUI_H_
-#define CEE_GUI_GUI_H_
-
-#include <cee/gui/object.h>
+#ifndef CEE_GUI_LOG_PRIVATE_H_
+#define CEE_GUI_LOG_PRIVATE_H_
 
 #include <memory>
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
 
 namespace cee {
 namespace gui {
-	class GUI {
+	class Log {
 	public:
-		GUI() = default;
-		~GUI() = default;
+		static void Init();
+		static void Shutdown();
 
-		inline void SetRoot(std::shared_ptr<Object> node) { m_Root = node; }
-
-		void Render();
+		static std::shared_ptr<spdlog::logger> GetLogger() { return s_Logger; }
 
 	private:
-		std::shared_ptr<Object> m_Root;
+		static std::shared_ptr<spdlog::logger> s_Logger;
 	};
 }
 }
+
+#define CEE_DEBUG(...)       ::cee::gui::Log::GetLogger()->debug(__VA_ARGS__)
+#define CEE_TRACE(...)       ::cee::gui::Log::GetLogger()->trace(__VA_ARGS__)
+#define CEE_INFO(...)        ::cee::gui::Log::GetLogger()->info(__VA_ARGS__)
+#define CEE_WARN(...)        ::cee::gui::Log::GetLogger()->warn(__VA_ARGS__)
+#define CEE_ERROR(...)       ::cee::gui::Log::GetLogger()->error(__VA_ARGS__)
+#define CEE_CRITICAL(...)    ::cee::gui::Log::GetLogger()->critical(__VA_ARGS__)
 
 #endif
 

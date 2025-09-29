@@ -16,19 +16,14 @@
  * with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CEE_GRID_LAYOUT_H_
-#define CEE_GRID_LAYOUT_H_
-
-#include <cee/gui/layout.h>
-#include <cee/gui/widget.h>
+#ifndef CEE_GUI_RENDERER_H_
+#define CEE_GUI_RENDERER_H_
 
 namespace cee {
 namespace gui {
-	class GridLayout : public Layout {
-	public:
-		void AddWigdet(std::shared_ptr<Widget> widget, int row, int column);
-	};
 }
 }
 
 #endif
+
+

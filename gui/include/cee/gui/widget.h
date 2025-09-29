@@ -19,13 +19,16 @@
 #ifndef CEE_GUI_WIDGET_H_
 #define CEE_GUI_WIDGET_H_
 
-#include "object.h"
+#include <cee/gui/object.h>
 
 namespace cee {
-class Widget : public Object {
-	Widget() = default;
-	~Widget() = default;
-};
+namespace gui {
+	class Widget : public Object {
+	public:
+		Widget() = default;
+		~Widget() = default;
+	};
+}
 }
 
 #endif

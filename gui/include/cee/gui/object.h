@@ -28,66 +28,49 @@
 #include <cstdint>
 
 namespace cee {
-template<typename... Args>
-struct SignalHandler;
+namespace gui {
+	enum class Signal : int64_t {
+		None = 0,
+		Activate = 1,
+		Destroy = 2,
+		Hide = 3,
+		Show = 4,
+		Clicked = 5
+	};
+
+	template<typename... Args>
+	struct SignalHandler {
+		Signal sig;
+		std::function<void(Args...)> f;
+
+		void invoke(Args&&... args);
+
+		void operator()(Args... args) {
+			invoke(std::forward<Args>(args)...);
+		}
+
+		bool operator==(const SignalHandler<Args...>& other) {
+			return (this->sig == other.sig) &&
+			(std::hash<SignalHandler<Args...>>(*this) == std::hash<SignalHandler<Args...>>(other));
+		}
+	};
+
+
+	class Object {
+	public:
+		template <typename... Args>
+		int64_t SignalConnect(const Signal sig, std::function<void(Args...)> f);
+		void SignalDisconnect(int64_t handlerId);
+		template <typename... Args>
+		void SignalDisconnectByFunc(const Signal sig, std::function<void(Args...)> f);
+
+	protected:
+		std::shared_ptr<Object> m_Parent;
+
+	private:
+		std::set<std::any> m_SignalCallbacks;
+	};
 }
-
-template<typename... Args>
-struct ::std::hash<cee::SignalHandler<Args...>> {
-	std::size_t operator()(const cee::SignalHandler<Args...>& handler) {
-		return typeid(std::tuple<Args...>).hash_code();
-	}
-};
-
-template<typename... Args>
-struct ::std::equal_to<cee::SignalHandler<Args...>> {
-	bool operator()(const cee::SignalHandler<Args...>& lhs, const cee::SignalHandler<Args...>& rhs) {
-		return lhs == rhs;
-	}
-};
-
-namespace cee {
-enum class Signal : int64_t {
-	None = 0,
-	Activate = 1,
-	Destroy = 2,
-	Hide = 3,
-	Show = 4,
-	Clicked
-};
-
-template<typename... Args>
-struct SignalHandler {
-	Signal sig;
-	std::function<void(Args...)> f;
-
-	void invoke(Args&&... args);
-
-	void operator()(Args... args) {
-		invoke(std::forward<Args>(args)...);
-	}
-
-	bool operator==(const SignalHandler<Args...>& other) {
-		return (this->sig == other.sig) &&
-		(std::hash<SignalHandler<Args...>>(*this) == std::hash<SignalHandler<Args...>>(other));
-	}
-};
-
-
-class Object {
-public:
-	template <typename... Args>
-	int64_t SignalConnect(const Signal sig, std::function<void(Args...)> f);
-	void SignalDisconnect(int64_t handlerId);
-	template <typename... Args>
-	void SignalDisconnectByFunc(const Signal sig, std::function<void(Args...)> f);
-
-protected:
-	std::shared_ptr<Object> m_Parent;
-
-private:
-	std::set<std::any> m_SignalCallbacks;
-};
 }
 
 #endif

@@ -17,8 +17,12 @@
  */
 
 #include <cee/gui/gui.h>
+#include <guiRenderer.h>
 
-static int func() {
-	return 0;
+namespace cee {
+namespace gui {
+	void GUI::Render() {
+	}
+}
 }
 
