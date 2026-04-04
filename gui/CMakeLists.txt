@@ -1,5 +1,5 @@
 # CeeHealth
-# Copyright (C) 2025 Chloe Eather
+# Copyright (C) 2025 2026 Chloe Eather
 # 
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -18,27 +18,35 @@ cmake_minimum_required(VERSION 4.0)
 
 find_package(PkgConfig REQUIRED)
 
-list(APPEND GUI_PRIVATE_INCLUDEDIRS /usr/include ${CMAKE_CURRENT_SOURCE_DIR})
+list(APPEND GUI_PRIVATE_INCLUDEDIRS /usr/include ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 list(APPEND GUI_PUBLIC_INCLUDEDIRS ${CMAKE_CURRENT_SOURCE_DIR}/include)
 list(APPEND GUI_LIBRARYDIRS /usr/lib)
-list(APPEND GUI_LIBRARIES spdlog::spdlog glad)
+list(APPEND GUI_LIBRARIES spdlog::spdlog glad glm::glm)
+
+if (USE_TRACY)
+	list(APPEND GUI_LIBRARIES ceeProfiler)
+endif()
 
 list(APPEND GUI_SOURCES
+	${CMAKE_CURRENT_SOURCE_DIR}/box.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/context.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/gui.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/guiRenderer.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/log.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/object.cpp
 )
 
 list(APPEND GUI_PUBLIC_HEADERS
+	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/gui/box.h
 	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/gui/gridLayout.h
 	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/gui/gui.h
 	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/gui/layout.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/gui/logger.h
 	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/gui/object.h
 	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/gui/widget.h
 )
 
 list(APPEND GUI_PRIVATE_HEADERS
+	${CMAKE_CURRENT_BINARY_DIR}/config.h
+	${CMAKE_CURRENT_SOURCE_DIR}/context.h
 	${CMAKE_CURRENT_SOURCE_DIR}/log.h
 )
 
@@ -55,4 +63,6 @@ target_include_directories(ceeGUI PRIVATE ${GUI_PRIVATE_INCLUDEDIRS})
 target_include_directories(ceeGUI PUBLIC ${GUI_PUBLIC_INCLUDEDIRS})
 target_link_directories(ceeGUI PRIVATE ${GUI_LIBRARYDIRS})
 target_link_libraries(ceeGUI PUBLIC ${GUI_LIBRARIES})
+
+configure_file(config.h.in "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
 

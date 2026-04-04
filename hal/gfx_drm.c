@@ -234,12 +234,12 @@ int HALGfxDRMInit(struct HALGfx_DRM *gfx)
 	}
 
 	int glVersion;
-	char msg[4] = { '\0', '\0', '\0', '\0' };
+	char esStr[4] = { '\0', '\0', '\0', '\0' };
 
 #if BUILD_GLES
 	if ((glVersion = gladLoaderLoadGLES2()) == 0) {
 		CEE_ERROR("Failed to load OpenGL ES");
-		strncpy("ES ", msg, 3);
+		strcpy("ES ", msg);
 #elif BUILD_GL
 	if ((glVersion = gladLoaderLoadGL()) == 0) {
 		CEE_ERROR("Failed to load OpenGL");
@@ -249,8 +249,10 @@ int HALGfxDRMInit(struct HALGfx_DRM *gfx)
 		return -1;
 	}
 
-	CEE_DEBUG("Loaded OpenGL %s%d.%d", msg, GLAD_VERSION_MAJOR(glVersion), GLAD_VERSION_MINOR(glVersion));
 	gfx->versionString = (const char*)glGetString(GL_VERSION);
+	CEE_DEBUG("Loaded OpenGL %s%d.%d", esStr, GLAD_VERSION_MAJOR(glVersion), GLAD_VERSION_MINOR(glVersion));
+	CEE_DEBUG("\tGL_VERSION: %s", gfx->versionString);
+	CEE_DEBUG("\tGL_RENDERER: %s", glGetString(GL_RENDERER));
 
 	glClearColor(.0f, .0f, .0f, .0f);
 	glClear(GL_COLOR_BUFFER_BIT);

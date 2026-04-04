@@ -1,11 +1,11 @@
 /*
  * CeeHealth
- * Copyright (C) 2025 Chloe Eather
+ * Copyright (C) 2025 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
- * vcyclycial cyclycial ersion.
+ * version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -23,8 +23,13 @@
 #include <cee/mppm/rng.h>
 #include <cee/mppm/config.h>
 
+#include <cee/profiler/profiler.h>
+
 #include <cee/hal/hal.h>
 #include <cee/hal/logger.h>
+
+#include <cee/gui/gui.h>
+#include <cee/gui/box.h>
 
 #include <chrono>
 #include <csignal>
@@ -40,6 +45,7 @@ MPPM* MPPM::s_Instance = nullptr;
 
 MPPM::MPPM(int argc, char *argv[]) {
 	(void)argc, (void)argv; // Supress unused warning
+	PROFILE_SCOPE("Initialization");
 	if (s_Instance) {
 		std::fprintf(stderr, "More than one instance of cee::MPPM is not allowed.");
 		std::exit(EXIT_FAILURE);
@@ -51,6 +57,8 @@ MPPM::MPPM(int argc, char *argv[]) {
 	Log::Init();
 	HALLogInit();
 	Log::AddLogger(hal::GetLogger());
+	gui::InitLogger();
+	Log::AddLogger(gui::GetLogger());
 
 	rng<int>::Init();
 
@@ -78,156 +86,140 @@ MPPM::MPPM(int argc, char *argv[]) {
 		throw std::runtime_error("Failed to initialize hardware abstration layer!");
 	}
 
-	try {
-		m_Renderer = cee::Renderer::Create();
-	} catch (const std::runtime_error& e) {
-		CEE_CORE_ERROR("Renderer uninitialized!");
-		throw std::runtime_error("Renderer uninitialized!");
+	m_HalGfx = HALGfxCreate();
+	if (m_HalGfx == nullptr) {
+		CEE_CORE_ERROR("Failed to create graphics backend!");
+		throw std::runtime_error("Failed to create graphics backend!");
+	}
+	if (HALGfxInit(m_HalGfx) != 0) {
+		CEE_CORE_ERROR("Failed to initialize graphics backend!");
+		throw std::runtime_error("Failed to initialize graphics backend!");
 	}
 
-	GLSLParser<char> vertexSource, fragmentSource;
-	m_Shader = std::make_shared<Shader>(m_Renderer);
-#if BUILD_GLES
-	if (strstr(m_Renderer->GetVersionString().c_str(), "ES 2.0")) {
-		m_Shader->SetVertexSourceString(
-			"#version 100\n"
-			"\n"
-			"attribute vec4 a_Position;\n"
-			"attribute vec4 a_Color;\n"
-			"attribute vec2 a_UV;\n"
-			"\n"
-			"precision mediump float;\n"
-			"\n"
-			"uniform vec2 u_Viewport;\n"
-			"\n"
-			"varying vec4 v_Color;\n"
-			"\n"
-			"void main() {\n"
-			"	gl_Position = vec4(2.0 * a_Position.xy / u_Viewport.xy - 1.0, 0.0, 1.0);\n"
-			"	v_Color = a_Color;\n"
-			"}\n");
-		m_Shader->SetFragmentSourceString(
-			"#version 100\n"
-			"\n"
-			"precision mediump float;\n"
-			"\n"
-			"varying vec4 v_Color;\n"
-			"\n"
-			"void main() {\n"
-			// "	gl_FragColor = v_Color;\n"
-			"	gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n"
-			"}\n");
-	} else {
-		m_Shader->SetVertexSourceString(
-			"#version 320 es\n"
-			"\n"
-			"layout (location = 0) in vec4 a_Position;\n"
-			"layout (location = 1) in vec4 a_Color;\n"
-			"layout (location = 2) in vec2 a_UV;\n"
-			"\n"
-			"uniform vec2 u_Viewport;\n"
-			"\n"
-			"out vec4 v_Color;\n"
-			"\n"
-			"void main() {\n"
-			"	gl_Position = vec4(2.0 * a_Position.xy / u_Viewport.xy - 1.0, 0.0, 1.0);\n"
-			"	v_Color = a_Color;\n"
-			"}\n");
-		m_Shader->SetFragmentSourceString(
-			"#version 320 es\n"
-			"\n"
-			"precision mediump float;\n"
-			"\n"
-			"in vec4 v_Color;\n"
-			"\n"
-			"out vec4 fragColor;\n"
-			"\n"
-			"void main() {\n"
-			"	fragColor = v_Color;\n"
-			"}\n");
-	}
-	if (m_Shader->Compile() != 0) {
-		throw std::runtime_error("Failed to compile and link shader");
-	}
-#elif BUILD_GL
-	vertexSource.Parse(std::string_view(
-		"#version 330 core\n"
-		"\n"
-		"layout (location = 0) in vec4 a_Position;\n"
-		"layout (location = 1) in vec4 a_Color;\n"
-		"layout (location = 2) in vec2 a_UV;\n"
-		"\n"
-		"uniform vec2 u_Viewport;\n"
-		"\n"
-		"out vec4 v_Color;\n"
-		"\n"
-		"void main() {\n"
-		"	gl_Position = vec4(2.0 * a_Position.xy / u_Viewport.xy - 1.0, 0.0, 1.0);\n"
-		"	v_Color = a_Color;\n"
-		"}\n"));
-	m_Shader->SetVertexSource(std::move(vertexSource));
-	fragmentSource.Parse(std::string_view(
-		"#version 330 core\n"
-		"\n"
-		"in vec4 v_Color;\n"
-		"\n"
-		"layout (location = 0) out vec4 fragColor;\n"
-		"\n"
-		"void main() {\n"
-		"	fragColor = v_Color;\n"
-		"}\n"));
-	m_Shader->SetFragmentSource(std::move(fragmentSource));
-	if (m_Shader->Compile() != 0) {
-		throw std::runtime_error("Failed to compile and link shader");
-	}
-#endif
-
+	cee::gui::Init();
 }
 
 MPPM::~MPPM() {
-	m_Shader.reset();
-
-	m_Renderer.reset();
+	cee::gui::Shutdown();
+	HALGfxShutdown(m_HalGfx);
+	HALGfxDestroy(m_HalGfx);
 	cee::Input::Shutdown();
 }
 
 int MPPM::Run() {
 	SetSigHandlers();
 
+	std::unique_ptr<cee::gui::Box> root = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> hbox = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> padBox = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> transBox = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> lesbianBox = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> transFlagStrip1 = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> transFlagStrip2 = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> transFlagStrip3 = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> transFlagStrip4 = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> transFlagStrip5 = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> lesbianFlagStrip1 = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> lesbianFlagStrip2 = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> lesbianFlagStrip3 = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> lesbianFlagStrip4 = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> lesbianFlagStrip5 = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> lesbianFlagStrip6 = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Box> lesbianFlagStrip7 = std::make_unique<cee::gui::Box>();
+
+	{
+		PROFILE_SCOPE("Setup GUI");
+		root->SetStackDirection(cee::gui::Box::StackDirection::Horizontal);
+		cee::gui::SetRootNode(root.get());
+
+		hbox->SetStackDirection(cee::gui::Box::StackDirection::Horizontal);
+
+		transBox->SetStackDirection(cee::gui::Box::StackDirection::Vertical);
+		padBox->Resize(100.f, 500.f);
+		padBox->SetStackDirection(cee::gui::Box::StackDirection::Vertical);
+		lesbianBox->SetStackDirection(cee::gui::Box::StackDirection::Vertical);
+
+		root->AddChild(hbox.get());
+		hbox->AddChild(lesbianBox.get());
+		hbox->AddChild(padBox.get());
+		hbox->AddChild(transBox.get());
+
+		transFlagStrip1->Resize(250.f, 100.f);
+		transFlagStrip1->SetColor({ .332f, .8f, .984f, 1.f });
+		transBox->AddChild(transFlagStrip1.get());
+		transFlagStrip2->Resize(250.f, 100.f);
+		transFlagStrip2->SetColor({ .965f, .656f, .719f, 1.f });
+		transBox->AddChild(transFlagStrip2.get());
+		transFlagStrip3->Resize(250.f, 100.f);
+		transFlagStrip3->SetColor({ 1.f, 1.f, 1.f, 1.f });
+		transBox->AddChild(transFlagStrip3.get());
+		transFlagStrip4->Resize(250.f, 100.f);
+		transFlagStrip4->SetColor({ .965f, .656f, .719f, 1.f });
+		transBox->AddChild(transFlagStrip4.get());
+		transFlagStrip5->Resize(250.f, 100.f);
+		transFlagStrip5->SetColor({ .332f, .8f, .984f, 1.f });
+		transBox->AddChild(transFlagStrip5.get());
+
+		lesbianFlagStrip1->Resize(250.f, 71.429f);
+		lesbianFlagStrip1->SetColor(gui::HexToColor(0xD52D00FF));
+		lesbianBox->AddChild(lesbianFlagStrip1.get());
+		lesbianFlagStrip2->Resize(250.f, 71.429f);
+		lesbianFlagStrip2->SetColor(gui::HexToColor(0xEF7627FF));
+		lesbianBox->AddChild(lesbianFlagStrip2.get());
+		lesbianFlagStrip3->Resize(250.f, 71.429f);
+		lesbianFlagStrip3->SetColor(gui::HexToColor(0xFF9A56FF));
+		lesbianBox->AddChild(lesbianFlagStrip3.get());
+		lesbianFlagStrip4->Resize(250.f, 71.429f);
+		lesbianFlagStrip4->SetColor(gui::HexToColor(0xFFFFFFFF));
+		lesbianBox->AddChild(lesbianFlagStrip4.get());
+		lesbianFlagStrip5->Resize(250.f, 71.429f);
+		lesbianFlagStrip5->SetColor(gui::HexToColor(0xD162A4FF));
+		lesbianBox->AddChild(lesbianFlagStrip5.get());
+		lesbianFlagStrip6->Resize(250.f, 71.429f);
+		lesbianFlagStrip6->SetColor(gui::HexToColor(0xB55690FF));
+		lesbianBox->AddChild(lesbianFlagStrip6.get());
+		lesbianFlagStrip7->Resize(250.f, 71.429f);
+		lesbianFlagStrip7->SetColor(gui::HexToColor(0xA30262FF));
+		lesbianBox->AddChild(lesbianFlagStrip7.get());
+	}
+
 	std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<float, std::milli> delta;
 
 	m_Running = true;
 	while (m_Running) {
-		m_Renderer->StartFrame();
-		m_Renderer->ClearColor({ 1.0f, 0.36f, 0.835f, 1.0f });
-		m_Renderer->Clear();
+		PROFILE_SCOPE("Main loop");
+		uint32_t windowWidth = HALGfxGetWidth(m_HalGfx);
+		uint32_t windowHeight = HALGfxGetHeight(m_HalGfx);
+		cee::gui::BeginFrame({ windowWidth, windowHeight });
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		cee::gui::Render(windowWidth, windowHeight);
+		cee::gui::EndFrame();
+		if (HALGfxPageFlip(m_HalGfx) != 0)
+			CEE_CORE_WARN("SwapBuffers failed");
+		PROFILER_FRAME_MARK();
+		{
+			PROFILE_SCOPE("Input");
+			ApplicationPageFlip flip;
+			OnEvent(flip);
+			Input::Poll();
+			if (cee::gui::HandleEvents() < 0) {
+				CEE_CORE_WARN("Failed to handle GUI events");
+			}
 
-		m_Shader->Bind();
-		m_Shader->SetUniform(
-			"u_Viewport",
-				static_cast<float>(m_Renderer->GetWidth()),
-				static_cast<float>(m_Renderer->GetHeight())
-			);
-		m_Renderer->SetColor({ 1.0f, 0.0f, 0.0f, 1.0f });
-		m_Renderer->DrawQuad({ 0.0f, 0.0f, 0.0f }, { 200.f, 200.f, 200.f });
-		m_Renderer->EndFrame();
-
-		m_Renderer->SwapBuffers();
-		ApplicationPageFlip flip;
-		OnEvent(flip);
-		Input::Poll();
-
-		delta = std::chrono::high_resolution_clock::now() - start;;
-		start = std::chrono::high_resolution_clock::now();
-		ApplicationTickEvent tick(delta.count());
-		OnEvent(tick);
+			delta = std::chrono::high_resolution_clock::now() - start;;
+			start = std::chrono::high_resolution_clock::now();
+			ApplicationTickEvent tick(delta.count());
+			OnEvent(tick);
+		}
 	}
 
 	return EXIT_SUCCESS;
 }
 
 void MPPM::OnEvent(Event& e) {
+	PROFILE_SCOPE("Event dispatch");
 	EventDispatcher dispatcher(e);
 	dispatcher.Dispatch<KeyDownEvent>([this](auto &&...args) -> decltype(auto) { this->OnKeyPress(std::forward<decltype(args)>(args)...); });
 	dispatcher.Dispatch<KeyUpEvent>([this](auto &&...args) -> decltype(auto) { this->OnKeyPress(std::forward<decltype(args)>(args)...); });
@@ -260,6 +252,7 @@ void MPPM::OnExit(ApplicationExitEvent &e) {
 }
 
 void MPPM::SetSigHandlers() {
+	PROFILE_FUNCTION();
 	signal(SIGTERM, MPPM::SigHandler);
 	signal(SIGTRAP, MPPM::SigHandler);
 	signal(SIGINT, MPPM::SigHandler);

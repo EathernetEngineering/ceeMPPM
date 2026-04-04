@@ -1,6 +1,6 @@
 /*
  * CeeHealth
- * Copyright (C) 2025 Chloe Eather
+ * Copyright (C) 2025 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
@@ -43,7 +43,7 @@ private:
 	};
 
 public:
-	Shader(std::shared_ptr<Renderer> renderer);
+	Shader(const std::string &versionString);
 	Shader(const Shader &) = delete;
 	Shader(Shader&& other);
 	~Shader();
@@ -68,7 +68,7 @@ public:
 	Shader& operator=(Shader&& other);
 
 private:
-	void GetVersionAndApi(std::shared_ptr<Renderer> renderer);
+	void GetVersionAndApi(const std::string &versionString);
 	int ValidateShaderVersion(const GLSLParser<char> &parser);
 
 	GLuint GetUnifromLocation(const std::string &name);

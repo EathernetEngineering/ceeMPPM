@@ -41,7 +41,7 @@ namespace gui {
 	class Layout : public Widget {
 	public:
 		Layout() = default;
-		~Layout() = default;
+		virtual ~Layout() = default;
 	};
 }
 }

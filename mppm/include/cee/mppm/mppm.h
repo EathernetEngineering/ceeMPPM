@@ -1,6 +1,6 @@
 /*
  * CeeHealth
- * Copyright (C) 2025 Chloe Eather
+ * Copyright (C) 2025 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
@@ -52,8 +52,8 @@ private:
 
 private:
 	bool m_Running;
-	std::shared_ptr<Renderer> m_Renderer;
-	std::shared_ptr<Shader> m_Shader;
+	//std::shared_ptr<Renderer> m_Renderer;
+	HALGfx *m_HalGfx;
 
 private:
 	static MPPM *s_Instance;

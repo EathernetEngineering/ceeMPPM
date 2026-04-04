@@ -72,6 +72,13 @@ int HALGfxGlXInit(struct HALGfx_glx *gfx)
 		return -1;
 	}
 
+	int glx_version = gladLoaderLoadGLX(gfx->xDisplay, gfx->xScreen);
+	if (!glx_version) {
+		CEE_ERROR("Failed to load GLX.");
+		return -1;
+	}
+	CEE_DEBUG("Loaded GLX %d.%d", GLAD_VERSION_MAJOR(glx_version), GLAD_VERSION_MINOR(glx_version));
+
 	XSetEventQueueOwner(gfx->xDisplay, XCBOwnsEventQueue);
 
 	const xcb_setup_t *setup = xcb_get_setup(gfx->connection);
@@ -155,7 +162,7 @@ int HALGfxGlXPageFlip(struct HALGfx_glx *gfx)
 		}
 		free(event);
 	}
-					glXSwapBuffers(gfx->xDisplay, gfx->drawable);
+	glXSwapBuffers(gfx->xDisplay, gfx->drawable);
 
 	return 0;
 }
@@ -165,46 +172,50 @@ int HALGfxGlXCreateWindow(struct HALGfx_glx *gfx, int width, int height, const c
 	if (gfx == NULL) {
 		return -1;
 	}
-	int visualID = 0;
 
-	int glx_version = gladLoaderLoadGLX(gfx->xDisplay, gfx->xScreen);
-	if (!glx_version) {
-		CEE_ERROR("Failed to load GLX.");
-		return -1;
-	}
-	CEE_DEBUG("Loaded GLX %d.%d", GLAD_VERSION_MAJOR(glx_version), GLAD_VERSION_MINOR(glx_version));
+	int fbAttribs[] = {
+		GLX_X_RENDERABLE, True,
+		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
+		GLX_RENDER_TYPE, GLX_RGBA_BIT,
+		GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR,
+		GLX_RED_SIZE, 8,
+		GLX_GREEN_SIZE, 8,
+		GLX_BLUE_SIZE, 8,
+		GLX_ALPHA_SIZE, 8,
+		GLX_DEPTH_SIZE, 24,
+		GLX_DOUBLEBUFFER, True,
+		None
+	};
 
 	GLXFBConfig *fbConfigs = NULL;
 	int nfbConfigs = 0;
-	fbConfigs = glXGetFBConfigs(gfx->xDisplay, gfx->xScreen, &nfbConfigs);
+	fbConfigs = glXChooseFBConfig(gfx->xDisplay, gfx->xScreen, fbAttribs, &nfbConfigs);
 	if (!fbConfigs || nfbConfigs == 0) {
 		CEE_ERROR("No GLX configs available");
 		return -1;
 	}
 
 	GLXFBConfig fbConfig = fbConfigs[0];
-	glXGetFBConfigAttrib(gfx->xDisplay, fbConfig, GLX_VISUAL_ID, &visualID);
+	XFree(fbConfigs);
 
-	GLXContext context;
-	context = glXCreateNewContext(gfx->xDisplay, fbConfig, GLX_RGBA_TYPE, 0, True);
-	if (!context) {
-		CEE_ERROR("Failed to create GLX context");
+	XVisualInfo *visualInfo = glXGetVisualFromFBConfig(gfx->xDisplay, fbConfig);
+	if (!visualInfo) {
+		CEE_ERROR("Failed to get visual info from GLX config");
 		return -1;
 	}
 
 	xcb_colormap_t colormap = xcb_generate_id(gfx->connection);
-	gfx->window = xcb_generate_id(gfx->connection);
-
 	xcb_create_colormap(gfx->connection,
 					 XCB_COLORMAP_ALLOC_NONE,
 					 colormap,
 					 gfx->screen->root,
-					 visualID);
+					 visualInfo->visualid);
 
 	uint32_t eventmask = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
 	uint32_t valuelist[] = { eventmask, colormap, 0 };
 	uint32_t valuemask = XCB_CW_EVENT_MASK | XCB_CW_COLORMAP;
 
+	gfx->window = xcb_generate_id(gfx->connection);
 	xcb_create_window(gfx->connection,
 				   XCB_COPY_FROM_PARENT,
 				   gfx->window,
@@ -213,21 +224,46 @@ int HALGfxGlXCreateWindow(struct HALGfx_glx *gfx, int width, int height, const c
 				   640, 480,
 				   0,
 				   XCB_WINDOW_CLASS_INPUT_OUTPUT,
-				   visualID,
+				   visualInfo->visualid,
 				   valuemask, valuelist);
 	xcb_map_window(gfx->connection, gfx->window);
+	xcb_flush(gfx->connection);
 
 	GLXWindow glxWindow = glXCreateWindow(gfx->xDisplay, fbConfig, gfx->window, 0);
-
 	if (!glxWindow) {
 		xcb_destroy_window(gfx->connection, gfx->window);
-		glXDestroyContext(gfx->xDisplay, context);
 		CEE_ERROR("Failed to create window");
 
 		return -1;
 	}
-
 	gfx->drawable = glxWindow;
+
+	const char *exts = glXQueryExtensionsString(gfx->xDisplay, gfx->xScreen);
+	if (!exts || !strstr(exts, "GLX_ARB_create_context")) {
+		xcb_destroy_window(gfx->connection, gfx->window);
+		CEE_ERROR("GLX_ARB_create_context not supported");
+		return -1;
+	}
+
+	int contextAttribs[] = {
+#if BUILD_GLES
+		GLX_CONTEXT_MAJOR_VERSION_ARB, 2,
+		GLX_CONTEXT_MINOR_VERSION_ARB, 0,
+#endif /* BUILD_GLES */
+#if BUILD_GL
+		GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
+		GLX_CONTEXT_MINOR_VERSION_ARB, 5,
+		GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+#endif /* BUILD_GL */
+		None
+	};
+
+	GLXContext context;
+	context = glXCreateContextAttribsARB(gfx->xDisplay, fbConfig, 0, True, contextAttribs);
+	if (!context) {
+		CEE_ERROR("Failed to create GLX context");
+		return -1;
+	}
 
 	if (!glXMakeContextCurrent(gfx->xDisplay, gfx->drawable, gfx->drawable, context)) {
 		xcb_destroy_window(gfx->connection, gfx->window);
@@ -238,7 +274,7 @@ int HALGfxGlXCreateWindow(struct HALGfx_glx *gfx, int width, int height, const c
 	}
 
 	int glVersion;
-	char msg[4] = { '\0', '\0', '\0', '\0'};
+	char esStr[4] = { '\0', '\0', '\0', '\0'};
 
 #if BUILD_GLES
 	if ((glVersion = gladLoaderLoadGLES2()) == 0) {
@@ -253,8 +289,11 @@ int HALGfxGlXCreateWindow(struct HALGfx_glx *gfx, int width, int height, const c
 		return -1;
 	}
 
-	CEE_DEBUG("Loaded OpenGL %s%d.%d", msg, GLAD_VERSION_MAJOR(glVersion), GLAD_VERSION_MINOR(glVersion));
 	gfx->versionString = (const char *)glGetString(GL_VERSION);
+	CEE_DEBUG("Loaded OpenGL %s%d.%d", esStr,
+			GLAD_VERSION_MAJOR(glVersion), GLAD_VERSION_MINOR(glVersion));
+	CEE_DEBUG("\tGL_VERSION: %s", gfx->versionString);
+	CEE_DEBUG("\tGL_RENDERER: %s", glGetString(GL_RENDERER));
 
 	const char *wmProtocolsAtomName = "WM_PROTOCOLS";
 	xcb_intern_atom_cookie_t windowCloseCookie = xcb_intern_atom(

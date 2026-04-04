@@ -17,12 +17,6 @@
  */
 
 #include <log.h>
-#include <cee/gui/logger.h>
-
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-
-#include <string>
 
 namespace cee {
 namespace gui {
@@ -41,8 +35,6 @@ namespace gui {
 		spdlog::drop(s_Logger->name());
 		s_Logger.reset();
 	}
-
-	std::shared_ptr<spdlog::logger> GetLogger() { return Log::GetLogger(); }
 }
 }
 

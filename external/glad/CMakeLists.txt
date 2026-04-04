@@ -1,5 +1,5 @@
 # CeeHealth
-# Copyright (C) 2025 Chloe Eather
+# Copyright (C) 2025 2026 Chloe Eather
 # 
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -17,8 +17,11 @@
 cmake_minimum_required(VERSION 4.0)
 
 if(BUILD_GL AND BUILD_GLES)
-	message(SEND_ERROR "Cannot build both GL ES and OpenGL as they have conflicting symbols\n"
+	message(SEND_ERROR "Cannot build both OpenGL ES and OpenGL as they have conflicting symbols\n"
 	                   "\tThis will cause link errors when compiled into an application")
+endif()
+if (NOT BUILD_GL AND NOT BUILD_GLES)
+	message(SEND_ERROR "No graphics backend selected, at least one of BUILD_GL or BUILD_GLES must be enabled")
 endif()
 
 if (BUILD_EGL)

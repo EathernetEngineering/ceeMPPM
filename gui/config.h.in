@@ -16,18 +16,15 @@
  * with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CEE_GUI_LOG_H_
-#define CEE_GUI_LOG_H_
+#ifndef CEE_GUI_CONFIG_H_
+#define CEE_GUI_CONFIG_H_
 
-#include <spdlog/spdlog.h>
+#cmakedefine01 BUILD_GLES
+#cmakedefine01 BUILD_GL
 
-#include <memory>
-
-namespace cee {
-namespace hal {
-	std::shared_ptr<spdlog::logger> GetLogger();
-}
-}
+#if (BUILD_GLES && BUILD_GL)
+#error "Cannot build both OpenGL and OpenGL ES at the same time"
+#endif
 
 #endif
 

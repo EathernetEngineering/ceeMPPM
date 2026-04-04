@@ -1,5 +1,5 @@
 # CeeHealth
-# Copyright (C) 2025 Chloe Eather
+# Copyright (C) 2025 2026 Chloe Eather
 # 
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -26,28 +26,21 @@ list(APPEND MPPM_PUBLIC_INCLUDEDIRS /usr/include/libdrm ${CMAKE_CURRENT_SOURCE_D
 	${CMAKE_CURRENT_BINARY_DIR}/include)
 list(APPEND MPPM_LIBRARYDIRS /usr/lib)
 list(APPEND MPPM_LIBRARIES m pthread rt asound xkbcommon
-	glad glm::glm spdlog::spdlog ceeHAL ceeGUI)
+	glad glm::glm spdlog::spdlog ceeHAL ceeGUI ceeProfiler)
 
 list(APPEND MPPM_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/input.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/log.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/mppm.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/renderer.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/shader.cpp
 )
 list(APPEND MPPM_PRIVATE_HEADERS
 	${CMAKE_CURRENT_SOURCE_DIR}/assertions.h
 	${CMAKE_CURRENT_SOURCE_DIR}/util.h
 )
-if (BUILD_GLES)
-	list(APPEND MPPM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/glesRenderer.cpp)
-	list(APPEND MPPM_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/glesRenderer.h)
-elseif(BUILD_GL)
-	list(APPEND MPPM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/glRenderer.cpp)
-	list(APPEND MPPM_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/glRenderer.h)
-endif()
 
 list(APPEND MPPM_PUBLIC_HEADERS
+	${CMAKE_CURRENT_BINARY_DIR}/include/cee/mppm/config.h
 	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/mppm.h
 	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/event.h
 	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/files.h

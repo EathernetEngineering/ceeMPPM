@@ -18,6 +18,8 @@
 
 #include <cee/mppm/mppm.h>
 
+#include <cee/profiler/profiler.h>
+
 #include <memory>
 
 #include <cstdlib>
@@ -25,6 +27,7 @@
 int main(int argc, char **argv) {
 	std::unique_ptr<cee::MPPM> app(nullptr);
 	try {
+		PROFILE_SCOPE("Application initialization");
 		app = std::make_unique<cee::MPPM>(argc, argv);
 	} catch(const std::runtime_error& e) {
 		fprintf(stderr, "Caught initialization exception:\n");
@@ -34,6 +37,7 @@ int main(int argc, char **argv) {
 
 	int ret = 0;
 	try {
+		PROFILE_SCOPE("Run");
 		ret = app->Run();
 	} catch(const std::runtime_error& e) {
 		fprintf(stderr, "Caught runtime exception\n");

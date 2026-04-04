@@ -1,6 +1,6 @@
 /*
  * CeeHealth
- * Copyright (C) 2025 Chloe Eather
+ * Copyright (C) 2025 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
@@ -26,7 +26,7 @@ namespace gui {
 	class Widget : public Object {
 	public:
 		Widget() = default;
-		~Widget() = default;
+		virtual ~Widget() = default;
 	};
 }
 }

@@ -1,6 +1,6 @@
 /*
  * CeeHealth
- * Copyright (C) 2025 Chloe Eather
+ * Copyright (C) 2025 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
@@ -83,9 +83,9 @@ static int GetProgramStatus(GLuint prgram)
 	return 0;
 }
 
-Shader::Shader(std::shared_ptr<Renderer> renderer)
+Shader::Shader(const std::string &versionString)
 {
-	GetVersionAndApi(renderer);
+	GetVersionAndApi(versionString);
 }
 
 Shader::Shader(Shader&& other)
@@ -208,7 +208,7 @@ Shader& Shader::operator=(Shader&& other)
 	return *this;
 }
 
-void Shader::GetVersionAndApi(std::shared_ptr<Renderer> renderer)
+void Shader::GetVersionAndApi(const std::string &versionString)
 {
 	/* 
 	 * The output expected from this is in the format:
@@ -218,8 +218,6 @@ void Shader::GetVersionAndApi(std::shared_ptr<Renderer> renderer)
 	 * and for OpenGL it is:
 	 * major.minor[.release] [vendor info]
 	 */
-	auto versionString = renderer->GetVersionString();
-
 	if (versionString.find("ES") != versionString.npos) {
 		m_glAPI = glAPI::OpenGL_ES;
 	} else {
@@ -249,7 +247,7 @@ void Shader::GetVersionAndApi(std::shared_ptr<Renderer> renderer)
 	 * this because nobody deserves to see it...
 	 *  - Chloe, 2025
 	 *  
-	 *  And maybe TODO: Whatever this is
+	 *  And maybe FIXME: Whatever this is
 	 */
 	if (m_glAPI == glAPI::OpenGL_ES) {
 		switch (major) {

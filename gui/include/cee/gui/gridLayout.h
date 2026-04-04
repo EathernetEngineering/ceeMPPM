@@ -26,7 +26,10 @@ namespace cee {
 namespace gui {
 	class GridLayout : public Layout {
 	public:
-		void AddWigdet(std::shared_ptr<Widget> widget, int row, int column);
+		GridLayout() = default;
+		virtual ~GridLayout() = default;
+
+		// void AddWigdet(std::shared_ptr<Widget> widget, int row, int column);
 	};
 }
 }

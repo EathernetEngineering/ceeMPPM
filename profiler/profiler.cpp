@@ -1,6 +1,6 @@
 /*
  * CeeHealth
- * Copyright (C) 2025 Chloe Eather
+ * Copyright (C) 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
@@ -16,14 +16,5 @@
  * with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CEE_GUI_RENDERER_H_
-#define CEE_GUI_RENDERER_H_
-
-namespace cee {
-namespace gui {
-}
-}
-
-#endif
-
+#include <TracyClient.cpp>
 
