@@ -26,7 +26,6 @@
 #include <cee/profiler/profiler.h>
 
 #include <cee/hal/hal.h>
-#include <cee/hal/logger.h>
 
 #include <cee/gui/gui.h>
 #include <cee/gui/box.h>
@@ -55,7 +54,7 @@ MPPM::MPPM(int argc, char *argv[]) {
 	bool running = true;
 
 	Log::Init();
-	HALLogInit();
+	hal::InitLogger();
 	Log::AddLogger(hal::GetLogger());
 	gui::InitLogger();
 	Log::AddLogger(gui::GetLogger());
@@ -68,41 +67,32 @@ MPPM::MPPM(int argc, char *argv[]) {
 	Input::SetEventCallback(std::bind(&MPPM::OnEvent, this, std::placeholders::_1));
 
 #if BUILD_HAL_DRM
-	HALSetGfxBackend(HAL_GFX_BACKEND_DRM);
-#elif BUILD_HAL_EGL_X11
-	HALSetGfxBackend(HAL_GFX_BACKEND_EGL_X);
-#elif BUILD_HAL_GLX
-	HALSetGfxBackend(HAL_GFX_BACKEND_GLX);
+	hal::SetGfxBackend(HAL_GFX_BACKEND_DRM);
+#elif BUILD_HAL_X11
+	hal::SetGfxBackend(HAL_GFX_BACKEND_X11);
 #endif
 #if BUILD_HAL_I2C
 	// FIXME: Change this to I2C once implemented.
-	HALSetI2CBackend(HAL_I2C_BACKEND_SIM);
+	hal::SetI2CBackend(HAL_I2C_BACKEND_SIM);
 #elif BUILD_HAL_I2C_SIM
-	HALSetI2CBackend(HAL_I2C_BACKEND_SIM);
+	hal::SetI2CBackend(HAL_I2C_BACKEND_SIM);
 #endif
 
-	if (HALInit()) {
+	if (hal::Init()) {
 		CEE_CORE_ERROR("Failed to initialize hardware abstration layer!");
 		throw std::runtime_error("Failed to initialize hardware abstration layer!");
 	}
 
-	m_HalGfx = HALGfxCreate();
-	if (m_HalGfx == nullptr) {
-		CEE_CORE_ERROR("Failed to create graphics backend!");
-		throw std::runtime_error("Failed to create graphics backend!");
-	}
-	if (HALGfxInit(m_HalGfx) != 0) {
-		CEE_CORE_ERROR("Failed to initialize graphics backend!");
-		throw std::runtime_error("Failed to initialize graphics backend!");
-	}
+	m_HalGfx = hal::GraphicsContext::Create();
+	m_HalGfx->Init();
 
 	cee::gui::Init();
 }
 
 MPPM::~MPPM() {
 	cee::gui::Shutdown();
-	HALGfxShutdown(m_HalGfx);
-	HALGfxDestroy(m_HalGfx);
+	m_HalGfx->Shutdown();
+	hal::Shutdown();
 	cee::Input::Shutdown();
 }
 
@@ -189,15 +179,14 @@ int MPPM::Run() {
 	m_Running = true;
 	while (m_Running) {
 		PROFILE_SCOPE("Main loop");
-		uint32_t windowWidth = HALGfxGetWidth(m_HalGfx);
-		uint32_t windowHeight = HALGfxGetHeight(m_HalGfx);
+		uint32_t windowWidth = m_HalGfx->GetWidth();
+		uint32_t windowHeight = m_HalGfx->GetHeight();
 		cee::gui::BeginFrame({ windowWidth, windowHeight });
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		cee::gui::Render(windowWidth, windowHeight);
 		cee::gui::EndFrame();
-		if (HALGfxPageFlip(m_HalGfx) != 0)
-			CEE_CORE_WARN("SwapBuffers failed");
+		m_HalGfx->SwapBuffers();
 		PROFILER_FRAME_MARK();
 		{
 			PROFILE_SCOPE("Input");

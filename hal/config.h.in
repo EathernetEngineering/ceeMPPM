@@ -22,12 +22,8 @@
 #define CARDIAC_MONITOR_VERSION_MAJOR @CardiacMonitor_VERSION_MAJOR@
 #define CARDIAC_MONITOR_VERSION_MINOR @CardiacMonitor_VERSION_MINOR@
 
-#cmakedefine01 BUILD_EGL
-#cmakedefine01 BUILD_GL
-#cmakedefine01 BUILD_GLES
 #cmakedefine01 BUILD_HAL_DRM
-#cmakedefine01 BUILD_HAL_EGL_X11
-#cmakedefine01 BUILD_HAL_GLX
+#cmakedefine01 BUILD_HAL_X11
 #cmakedefine01 BUILD_HAL_I2C
 #cmakedefine01 BUILD_HAL_I2C_SIM
 

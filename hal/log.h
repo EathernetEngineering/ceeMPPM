@@ -16,26 +16,11 @@
  * with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CEE_HAL_LOG_H_
-#define CEE_HAL_LOG_H_
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-void HALDebugMessage(const char *fmt, ...);
-void HALTraceMessage(const char *fmt, ...);
-void HALInfoMessage(const char *fmt, ...);
-void HALWarnMessage(const char *fmt, ...);
-void HALErrorMessage(const char *fmt, ...);
-void HALCriticalMessage(const char *fmt, ...);
-
-#if defined(__cplusplus)
-}
+#ifndef CEE_HAL_LOG_PRIVATE_H_
+#define CEE_HAL_LOG_PRIVATE_H_
 
 #include <memory>
 #include <spdlog/spdlog.h>
-#include <spdlog/fmt/ostr.h>
 
 namespace cee {
 namespace hal {
@@ -58,14 +43,6 @@ namespace hal {
 #define CEE_WARN(...)        ::cee::hal::Log::GetLogger()->warn(__VA_ARGS__)
 #define CEE_ERROR(...)       ::cee::hal::Log::GetLogger()->error(__VA_ARGS__)
 #define CEE_CRITICAL(...)    ::cee::hal::Log::GetLogger()->critical(__VA_ARGS__)
-#else
-#define CEE_DEBUG(...)       HALDebugMessage(__VA_ARGS__)
-#define CEE_TRACE(...)       HALTraceMessage(__VA_ARGS__)
-#define CEE_INFO(...)        HALInfoMessage(__VA_ARGS__)
-#define CEE_WARN(...)        HALWarnMessage(__VA_ARGS__)
-#define CEE_ERROR(...)       HALErrorMessage(__VA_ARGS__)
-#define CEE_CRITICAL(...)    HALCriticalMessage(__VA_ARGS__)
-#endif
 
 #endif
 

@@ -38,6 +38,7 @@ namespace gui {
 	inline int HandleEvents() { return 0; }
 
 	void InitLogger();
+	void ShutdownLogger();
 	std::shared_ptr<spdlog::logger> GetLogger();
 }
 }

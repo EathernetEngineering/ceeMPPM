@@ -17,7 +17,6 @@
  */
 
 #include <cee/mppm/shader.h>
-#include <cee/mppm/renderer.h>
 #include <cee/mppm/log.h>
 #include <cee/mppm/parser.h>
 

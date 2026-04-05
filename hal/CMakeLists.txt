@@ -19,31 +19,26 @@ cmake_minimum_required(VERSION 4.0)
 find_package(PkgConfig REQUIRED)
 
 option(BUILD_HAL_DRM "build HAL DRM graphics backend" ON)
-option(BUILD_HAL_EGL_X11 "build HAL GLX graphics backend" OFF)
-option(BUILD_HAL_GLX "build HAL GLX graphics backend" OFF)
+option(BUILD_HAL_X11 "build HAL X11 graphics backend" OFF)
 option(BUILD_HAL_I2C "build HAL I2C backend for GLX" ON)
 option(BUILD_HAL_I2C_SIM "build HAL simulated I2C backend for GLX" ON)
 
 list(APPEND HAL_PRIVATE_INCLUDEDIRS /usr/include ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-list(APPEND HAL_PUBLIC_INCLUDEDIRS ${CMAKE_CURRENT_SOURCE_DIR}/include)
+list(APPEND HAL_PUBLIC_INCLUDEDIRS ${CMAKE_CURRENT_SOURCE_DIR}/include /usr/include/libdrm)
 list(APPEND HAL_LIBRARYDIRS /usr/lib)
 list(APPEND HAL_LIBRARIES glad spdlog::spdlog)
 
 if (BUILD_HAL_DRM)
 	list(APPEND HAL_LIBRARIES drm gbm)
-	list(APPEND HAL_PRIVATE_INCLUDEDIRS /usr/include/libdrm)
 endif()
-if (BUILD_HAL_GLX)
-	list(APPEND HAL_LIBRARIES X11 xcb X11-xcb)
-endif()
-if (BUILD_HAL_EGL_X11)
+if (BUILD_HAL_X11)
 	list(APPEND HAL_LIBRARIES X11)
 endif()
 
 list(APPEND HAL_SOURCES
-	${CMAKE_CURRENT_SOURCE_DIR}/gfx.c
-	${CMAKE_CURRENT_SOURCE_DIR}/hal.c
-	${CMAKE_CURRENT_SOURCE_DIR}/i2c.c
+	${CMAKE_CURRENT_SOURCE_DIR}/gfx.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/hal.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/i2c.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/log.cpp
 )
 
@@ -60,30 +55,18 @@ list(APPEND HAL_PRIVATE_HEADERS
 
 if (BUILD_HAL_DRM)
 	list(APPEND HAL_SOURCES
-		${CMAKE_CURRENT_SOURCE_DIR}/display.c
-		${CMAKE_CURRENT_SOURCE_DIR}/gbmFramebuffer.c
-		${CMAKE_CURRENT_SOURCE_DIR}/gfx_drm.c
+		${CMAKE_CURRENT_SOURCE_DIR}/gfx_drm.cpp
 	)
 	list(APPEND HAL_PRIVATE_HEADERS
-		${CMAKE_CURRENT_SOURCE_DIR}/display.h
-		${CMAKE_CURRENT_SOURCE_DIR}/gbmFramebuffer.h
 		${CMAKE_CURRENT_SOURCE_DIR}/gfx_drm.h
 	)
 endif()
-if (BUILD_HAL_EGL_X11)
+if (BUILD_HAL_X11)
 	list(APPEND HAL_SOURCES
-		${CMAKE_CURRENT_SOURCE_DIR}/gfx_egl_x.c
+		${CMAKE_CURRENT_SOURCE_DIR}/gfx_egl_x.cpp
 	)
 	list(APPEND HAL_PRIVATE_HEADERS
 		${CMAKE_CURRENT_SOURCE_DIR}/gfx_egl_x.h
-	)
-endif()
-if (BUILD_HAL_GLX)
-	list(APPEND HAL_SOURCES
-		${CMAKE_CURRENT_SOURCE_DIR}/gfx_glx.c
-	)
-	list(APPEND HAL_PRIVATE_HEADERS
-		${CMAKE_CURRENT_SOURCE_DIR}/gfx_glx.h
 	)
 endif()
 
@@ -92,7 +75,7 @@ endif()
 
 if (BUILD_HAL_I2C)
 	list(APPEND HAL_SOURCES
-		${CMAKE_CURRENT_SOURCE_DIR}/i2c_i2c.c
+		${CMAKE_CURRENT_SOURCE_DIR}/i2c_i2c.cpp
 	)
 	list(APPEND HAL_PRIVATE_HEADERS
 		${CMAKE_CURRENT_SOURCE_DIR}/i2c_i2c.h
@@ -100,7 +83,7 @@ if (BUILD_HAL_I2C)
 endif()
 if (BUILD_HAL_I2C_SIM)
 	list(APPEND HAL_SOURCES
-		${CMAKE_CURRENT_SOURCE_DIR}/i2c_sim.c
+		${CMAKE_CURRENT_SOURCE_DIR}/i2c_sim.cpp
 	)
 	list(APPEND HAL_PRIVATE_HEADERS
 		${CMAKE_CURRENT_SOURCE_DIR}/i2c_sim.h

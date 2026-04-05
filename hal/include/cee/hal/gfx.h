@@ -19,29 +19,35 @@
 #ifndef CEE_HAL_GFX_H_
 #define CEE_HAL_GFX_H_
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include <memory>
 
-typedef void(* PFNSwapBuffers)(void* userData);
+namespace cee {
+namespace hal {
+class GraphicsContext {
+	public:
+		GraphicsContext()
+			: m_Width(0u), m_Height(0u)
+		{}
+		virtual ~GraphicsContext(){}
 
-struct HALGfx;
+	public:
+		virtual void Init() = 0;
+		virtual void Shutdown() = 0;
 
-struct HALGfx *HALGfxCreate(void);
-int HALGfxInit(struct HALGfx *gfx);
-int HALGfxShutdown(struct HALGfx *gfx);
-void HALGfxDestroy(struct HALGfx *gfx);
+		virtual const char* GetVersionString() const = 0;
+		virtual const char* GetShadingVersionString() const = 0;
+		virtual int GetWidth() const { return m_Width; }
+		virtual int GetHeight() const { return m_Height; }
+		virtual void SwapBuffers() = 0;
 
-int HALGfxGetWidth(const struct HALGfx *gfx);
-int HALGfxGetHeight(const struct HALGfx *gfx);
+	public:
+		static std::unique_ptr<GraphicsContext> Create();
 
-int HALGfxPageFlip(struct HALGfx *gfx);
-
-const char *HALGfxGetVersionString(struct HALGfx *gfx);
-
-#if defined(__cplusplus)
+	protected:
+		uint32_t m_Width, m_Height;
+};
 }
-#endif
+}
 
 #endif
 

@@ -25,17 +25,10 @@
 #cmakedefine01 CEE_ENABLE_ASSERTIONS
 #cmakedefine01 CEE_ENABLE_ASSERTIONS_RAISE
 
-#cmakedefine01 BUILD_GLES
-#cmakedefine01 BUILD_GL
 #cmakedefine01 BUILD_HAL_DRM
-#cmakedefine01 BUILD_HAL_EGL_X11
-#cmakedefine01 BUILD_HAL_GLX
+#cmakedefine01 BUILD_HAL_X11
 #cmakedefine01 BUILD_HAL_I2C
 #cmakedefine01 BUILD_HAL_I2C_SIM
-
-#if (BUILD_GLES && BUILD_GL)
-#error "Cannot build both OpenGL and OpenGL ES at the same time"
-#endif
 
 #endif
 

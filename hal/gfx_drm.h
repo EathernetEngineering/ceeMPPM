@@ -23,32 +23,82 @@
 #include <config.h>
 
 #include <glad/egl.h>
-#if BUILD_GLES
 #include <glad/gles2.h>
-#elif BUILD_GL
-#include <glad/gl.h>
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+#include <gbm.h>
 
-struct HALGfx_DRM;
+namespace cee {
+namespace hal {
+	class DRMGraphicsContext : public GraphicsContext {
+		protected:
+			DRMGraphicsContext();
 
-struct HALGfx_DRM *HALGfxDRMCreate(void);
-int HALGfxDRMInit(struct HALGfx_DRM *gfx);
-int HALGfxDRMShutdown(struct HALGfx_DRM *gfx);
-void HALGfxDRMDestroy(struct HALGfx_DRM *gfx);
+		public:
+			virtual ~DRMGraphicsContext();
 
-const char *HALGfxDRMGetVersionString(const struct HALGfx_DRM *gfx);
+			virtual void Init() override;
+			virtual void Shutdown() override;
 
-int HALGfxDRMGetWidth(const struct HALGfx_DRM *gfx);
-int HALGfxDRMGetHeight(const struct HALGfx_DRM *gfx);
-int HALGfxDRMPageFlip(struct HALGfx_DRM *gfx);
+			virtual const char* GetVersionString() const override;
+			virtual const char* GetShadingVersionString() const override;
+			virtual void SwapBuffers() override;
 
-#if defined(__cplusplus)
+		protected:
+			EGLDisplay m_EglDisplay;
+			EGLConfig m_EglConfig;
+			EGLContext m_EglContext;
+			EGLSurface m_EglSurface;
+
+			struct display {
+				int fd;
+				drmModeRes *resources;
+				drmModeConnector *connector;
+				drmModeEncoder *encoder;
+				drmModeModeInfo *connectorMode;
+				uint32_t connectorId;
+				uint32_t crtcIndex;
+				uint32_t crtcId;
+				drmEventContext eventContext;
+
+				int width, height;
+			} m_DRMDisplay;
+
+			struct GBMFramebuffer {
+				gbm_device *device;;
+				gbm_surface *surface;;
+				gbm_bo *fbo;
+				gbm_bo *bbo;
+				uint32_t fboId;
+
+				int width, height;
+				uint32_t format;
+			} m_FB;
+
+			gbm_bo *m_OldFBO;
+
+		protected:
+			void ChooseDRMDevice();
+			void ChooseConnector();
+			int ChooseCrtcForEncoder(const drmModeEncoder *encoder) const;
+			int ChooseCrtcForConnector(const drmModeConnector *connector) const;
+			void ChooseConnectorMode();
+			void DRMPageFlip();
+			void GetDRMModeID();
+
+			void CreateGBMSurface();
+			void GBMPageFlip();
+			void GBMReleaseBuffer();
+
+			void ChooseEGLConfig(EGLint attribs[]);
+			int MatchEGLConfigToVisual(EGLConfig configs[], int count) const;
+
+		public:
+			friend std::unique_ptr<GraphicsContext> GraphicsContext::Create();
+	};
 }
-#endif
+}
 
 #endif
 

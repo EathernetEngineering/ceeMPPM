@@ -19,15 +19,12 @@
 #ifndef CEE_HAL_HAL_H_
 #define CEE_HAL_HAL_H_
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include <spdlog/spdlog.h>
 
 enum HalGfxBackend {
 	HAL_GFX_BACKEND_NONE = 0,
 	HAL_GFX_BACKEND_DRM  = 1,
-	HAL_GFX_BACKEND_EGL_X  = 2,
-	HAL_GFX_BACKEND_GLX  = 3,
+	HAL_GFX_BACKEND_X11  = 2,
 	
 	HAL_GFX_BACKEND_ENUM_MAX
 };
@@ -42,17 +39,21 @@ enum HalI2CBackend {
 };
 typedef enum HalI2CBackend hal_i2c_backend_t;
 
-int HALInit(void);
-int HALShutdown(void);
+namespace cee {
+namespace hal {
+	int Init(void);
+	int Shutdown(void);
 
-int HALSetGfxBackend(hal_gfx_backend_t backend);
-hal_gfx_backend_t HALGetGfxBackend(void);
-int HALSetI2CBackend(hal_i2c_backend_t backend);
-hal_i2c_backend_t HALGetI2CBackend(void);
+	int SetGfxBackend(hal_gfx_backend_t backend);
+	hal_gfx_backend_t GetGfxBackend(void);
+	int SetI2CBackend(hal_i2c_backend_t backend);
+	hal_i2c_backend_t GetI2CBackend(void);
 
-#if defined(__cplusplus)
+	void InitLogger();
+	void ShutdownLogger();
+	std::shared_ptr<spdlog::logger> GetLogger();
 }
-#endif
+}
 
 #endif
 

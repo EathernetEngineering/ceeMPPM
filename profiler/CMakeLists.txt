@@ -37,7 +37,17 @@ list(APPEND PROFILER_PUBLIC_HEADERS
 	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/profiler/profiler.h
 )
 
-add_library(ceeProfiler SHARED ${PROFILER_SOURCES})
+if (USE_TRACY)
+	add_library(ceeProfiler SHARED ${PROFILER_SOURCES})
+	target_include_directories(ceeProfiler PRIVATE ${PROFILER_PRIVATE_INCLUDEDIRS})
+	target_include_directories(ceeProfiler PUBLIC ${PROFILER_PUBLIC_INCLUDEDIRS})
+	target_link_directories(ceeProfiler PRIVATE ${PROFILER_LIBRARYDIRS})
+	target_link_libraries(ceeProfiler PUBLIC ${PROFILER_LIBRARIES})
+else()
+	add_library(ceeProfiler INTERFACE)
+	target_include_directories(ceeProfiler INTERFACE ${PROFILER_PUBLIC_INCLUDEDIRS})
+	target_link_libraries(ceeProfiler INTERFACE ${PROFILER_LIBRARIES})
+endif()
 
 set_target_properties(ceeProfiler
 	PROPERTIES
@@ -45,8 +55,5 @@ set_target_properties(ceeProfiler
 	CXX_STANDARD_REQUIRED ON
 	PUBLIC_HEADER "${PROFILER_PUBLIC_HEADERS}")
 
-target_include_directories(ceeProfiler PRIVATE ${PROFILER_PRIVATE_INCLUDEDIRS})
-target_include_directories(ceeProfiler PUBLIC ${PROFILER_PUBLIC_INCLUDEDIRS})
-target_link_directories(ceeProfiler PRIVATE ${PROFILER_LIBRARYDIRS})
-target_link_libraries(ceeProfiler PUBLIC ${PROFILER_LIBRARIES})
+
 

@@ -16,24 +16,36 @@
  * with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <cee/mppm/renderer.h>
-#include <cee/mppm/config.h>
-#if BUILD_GLES
-#include <glesRenderer.h>
-#elif BUILD_GL
-#include <glRenderer.h>
-#endif
+#include <cee/hal/gfx.h>
+#include <cee/hal/hal.h>
+#include <gfx_drm.h>
+#include <gfx_egl_x.h>
+#include <log.h>
+#include <util.h>
+#include <config.h>
+
+#include <stddef.h>
+#include <stdlib.h>
+
+#include <memory>
 
 namespace cee {
-std::unique_ptr<Renderer> Renderer::Create() {
-#if BUILD_GLES
-	return std::make_unique<GLESRenderer>();
-#elif BUILD_GL
-	return std::make_unique<OpenGLRenderer>();
-#else
-	static_assert(0, "No renderer set, use -DBUILD_GLES or -DBUILD_GL");
-	return nullptr;
+namespace hal {
+	std::unique_ptr<GraphicsContext> GraphicsContext::Create() {
+		switch (GetGfxBackend()) {
+#if defined(BUILD_HAL_X11) && BUILD_HAL_X11
+			case HAL_GFX_BACKEND_X11:
+				return std::unique_ptr<X11GraphicsContext>(new X11GraphicsContext());
 #endif
+#if defined(BUILD_HAL_DRM) && BUILD_HAL_DRM
+			case HAL_GFX_BACKEND_DRM:
+				return std::unique_ptr<DRMGraphicsContext>(new DRMGraphicsContext());
+#endif
+			default:
+				CEE_ERROR("Invalid graphics backend!");
+				return nullptr;
+		}
+	}
 }
 }
 

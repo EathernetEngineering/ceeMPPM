@@ -20,30 +20,42 @@
 #define CEE_HAL_GFX_EGL_X_H_
 
 #include <cee/hal/gfx.h>
-#include <xcb/xcb.h>
+#include <X11/Xlib.h>
+#include <X11/X.h>
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include <glad/egl.h>
 
-struct HALGfx_egl_x;
+namespace cee {
+namespace hal {
+	class X11GraphicsContext : public GraphicsContext {
+		protected:
+			X11GraphicsContext();
 
-struct HALGfx_egl_x *HALGfxEglXCreate(void);
-int HALGfxEglXInit(struct HALGfx_egl_x *gfx);
-int HALGfxEglXShutdown(struct HALGfx_egl_x *gfx);
-void HALGfxEglXDestroy(struct HALGfx_egl_x *gfx);
+		public:
+			virtual ~X11GraphicsContext();
 
-const char *HALGfxEglXGetVersionString(const struct HALGfx_egl_x *gfx);
+			virtual void Init() override;
+			virtual void Shutdown() override;
 
-int HALGfxEglXGetWidth(const struct HALGfx_egl_x *gfx);
-int HALGfxEglXGetHeight(const struct HALGfx_egl_x *gfx);
-int HALGfxEglXPageFlip(struct HALGfx_egl_x *gfx);
+			virtual const char* GetVersionString() const override;
+			virtual const char* GetShadingVersionString() const override;
+			virtual void SwapBuffers() override;
 
-int HALGfxEglXCreateWindow(struct HALGfx_egl_x *gfx, int width, int height, const char *title);
+		protected:
+			Display *m_Display;
+			Window m_Window;
+			int m_Screen;
+			Atom m_WmDeleteAtom;
 
-#if defined(__cplusplus)
+			EGLDisplay m_EglDisplay;
+			EGLSurface m_EglSurface;
+			EGLContext m_EglContext;
+
+		public:
+			friend std::unique_ptr<GraphicsContext> GraphicsContext::Create();
+	};
 }
-#endif
+}
 
 #endif
 

@@ -21,11 +21,7 @@ find_package(PkgConfig REQUIRED)
 list(APPEND GUI_PRIVATE_INCLUDEDIRS /usr/include ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 list(APPEND GUI_PUBLIC_INCLUDEDIRS ${CMAKE_CURRENT_SOURCE_DIR}/include)
 list(APPEND GUI_LIBRARYDIRS /usr/lib)
-list(APPEND GUI_LIBRARIES spdlog::spdlog glad glm::glm)
-
-if (USE_TRACY)
-	list(APPEND GUI_LIBRARIES ceeProfiler)
-endif()
+list(APPEND GUI_LIBRARIES spdlog::spdlog glad glm::glm ceeProfiler)
 
 list(APPEND GUI_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/box.cpp

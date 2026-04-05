@@ -132,6 +132,10 @@ namespace gui {
 		Log::Init();
 	}
 
+	void ShutdownLogger() {
+		Log::Shutdown();
+	}
+
 	std::shared_ptr<spdlog::logger> GetLogger() {
 		return Log::GetLogger();
 	}

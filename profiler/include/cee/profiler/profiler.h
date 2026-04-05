@@ -19,8 +19,6 @@
 #ifndef CEE_PROFILER_H_
 #define CEE_PROFILER_H_
 
-#include <Tracy.hpp>
-
 #if defined(__clang__) || defined(__GNUC__)
 #define PRETTY_SIGNATURE __PRETTY_FUNCTION__
 #elif defined(_MSC_VER)
@@ -30,6 +28,7 @@
 #endif
 
 #ifdef CEE_PROFILER_ENABLE
+#include <Tracy.hpp>
 #define PROFILE_SCOPE(name) ZoneScopedN(name)
 #define PROFILE_SCOPE_UNNAMED() ZoneScoped
 #define PROFILE_FUNCTION() ZoneScopedN(PRETTY_SIGNATURE)
