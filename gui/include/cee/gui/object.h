@@ -68,6 +68,10 @@ namespace gui {
 		float x, y, w, h;
 	};
 
+	struct Point {
+		float x, y;
+	};
+
 	struct Size {
 		float w, h;
 	};

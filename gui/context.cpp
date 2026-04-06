@@ -35,14 +35,6 @@ namespace gui {
 
 	Context::Context()
 	 : m_VertexCount(0), m_IndexCount(0) {
-#if BUILD_GL
-		glGenVertexArrays(1, &m_VAO);
-		if (m_VAO == 0) {
-			throw std::runtime_error("Failed to create OpenGL vertex array object");
-		}
-		glBindVertexArray(m_VAO);
-#endif /* BUILD_GL */
-
 		glGenBuffers(1, &m_VBO);
 		if (m_VBO == 0) {
 			throw std::runtime_error("Failed to create OpenGL vertex buffer object");
@@ -62,122 +54,23 @@ namespace gui {
 		glBufferData(GL_ARRAY_BUFFER, 1024, nullptr, GL_DYNAMIC_DRAW);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, 1024, nullptr, GL_DYNAMIC_DRAW);
 
-#if BUILD_GLES
-		if (BuildShader(vertexShaderSourceES2, fragmentShaderSourceES2, &m_FlatShader) != 0) {
+		if (BuildShader(vertexShaderSourceES2, fragmentShaderSourceES2, &m_QuadFlatShader) != 0) {
 			CEE_WARN("Failed to compile GLSL ES 100 shader, Trying GLSL ES 320");
-			if (BuildShader(vertexShaderSourceES3, fragmentShaderSourceES3, &m_FlatShader) != 0)
+			if (BuildShader(vertexShaderSourceES3, fragmentShaderSourceES3, &m_QuadFlatShader) != 0)
 				throw std::runtime_error("Could not build shaders!");
 		}
-#endif /* BUILD_GLES */
-#if BUILD_GL
-		if (BuildShader(vertexShaderSource, fragmentShaderSource, &m_FlatShader) != 0)
-			throw std::runtime_error("Could not build shaders!");
-#endif /* BUILD_GL */
 		CEE_DEBUG("Flat shader compiled successfully");
-// 		GLint success;
-// 		m_FlatShader = glCreateProgram();
-// 		GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-// 		GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-// 		const char *vertSource, *fragSource;
-// #if BUILD_GLES
-// 		vertSource = vertexShaderSourceES2.data();
-// 		fragSource = fragmentShaderSourceES2.data();
-// 		glShaderSource(vertexShader, 1, &vertSource, nullptr);
-// 		glCompileShader(vertexShader);
-// 		glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-// 		if (!success) {
-// 			CEE_WARN("Failed to compile vertex shader with GLSL ES 100, trying GLSL ES 320");
-// 			vertSource = vertexShaderSourceES3.data();
-// 			fragSource = fragmentShaderSourceES3.data();
-// 			glShaderSource(vertexShader, 1, &vertSource, nullptr);
-// 			glCompileShader(vertexShader);
-// 			glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-// 			if (!success) {
-// 				const char *log;
-// 				glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &success);
-// 				log = new char[success];
-// 				glGetShaderInfoLog(vertexShader, success, nullptr, (char*)log);
-// 				std::string message = std::format("Failed to compile vertex shader: {}", log);
-// 				delete[] log;
-// 				throw std::runtime_error(message);
-// 			}
-// 		}
-//
-// 		glShaderSource(fragmentShader, 1, &fragSource, nullptr);
-// 		glCompileShader(fragmentShader);
-// 		glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-// 		if (!success) {
-// 				const char *log;
-// 				glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &success);
-// 				log = new char[success];
-// 				glGetShaderInfoLog(fragmentShader, success, nullptr, (char*)log);
-// 				std::string message = std::format("Failed to compile fragment shader: {}", log);
-// 				delete[] log;
-// 				throw std::runtime_error(message);
-// 		}
-// #endif /* BUILD_GLES */
-// #if BUILD_GL
-// 		vertSource = vertexShaderSource.data();
-// 		fragSource = fragmentShaderSource.data();
-// 		glShaderSource(vertexShader, 1, &vertSource, nullptr);
-// 		glCompileShader(vertexShader);
-// 		glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-// 		if (!success) {
-// 			const char *log;
-// 			glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &success);
-// 			log = new char[success];
-// 			glGetShaderInfoLog(vertexShader, success, nullptr, (char*)log);
-// 			std::string message = std::format("Failed to compile vertex shader: {}", log);
-// 			delete[] log;
-// 			throw std::runtime_error(message);
-// 		}
-//
-// 		glShaderSource(fragmentShader, 1, &fragSource, nullptr);
-// 		glCompileShader(fragmentShader);
-// 		glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-// 		if (!success) {
-// 			const char *log;
-// 			glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &success);
-// 			log = new char[success];
-// 			glGetShaderInfoLog(fragmentShader, success, nullptr, (char*)log);
-// 			std::string message = std::format("Failed to compile fragment shader: {}", log);
-// 			delete[] log;
-// 			throw std::runtime_error(message);
-// 		}
-// #endif /* BUILD_GL */
-//
-// 		glAttachShader(m_FlatShader, vertexShader);
-// 		glAttachShader(m_FlatShader, fragmentShader);
-// 		glLinkProgram(m_FlatShader);
-// 		glGetProgramiv(m_FlatShader, GL_LINK_STATUS, &success);
-// 		if (!success) {
-// 			const char *log;
-// 			glGetProgramiv(m_FlatShader, GL_INFO_LOG_LENGTH, &success);
-// 			log = new char[success];
-// 			glGetProgramInfoLog(m_FlatShader, success, nullptr, (char*)log);
-// 			std::string message = std::format("Failed to compile fragment shader: {}", log);
-// 			delete[] log;
-// 			throw std::runtime_error(message);
-// 		}
-// 		glDeleteShader(vertexShader);
-// 		glDeleteShader(fragmentShader);
 
 		m_Projection = glm::ortho(0.0f, 800.0f, 600.0f, 0.0f);
 	}
 
 	Context::~Context() {
 		glUseProgram(GL_NONE);
-		glDeleteProgram(m_FlatShader);
+		glDeleteProgram(m_QuadFlatShader);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-#if BUILD_GL
-		glBindVertexArray(0);
-#endif /* BUILD_GL */
 		glDeleteBuffers(1, &m_VBO);
 		glDeleteBuffers(1, &m_EBO);
-#if BUILD_GL
-		glDeleteVertexArrays(1, &m_VAO);
-#endif /* BUILD_GL */
 	}
 
 	void Context::SetViewport(const glm::vec2 &viewport) {
@@ -231,19 +124,48 @@ namespace gui {
 		m_IndexData[m_IndexCount++] = m_VertexCount - 4;
 	}
 
+	void Context::DrawTriangle(const Point &a, const Point &b, const Point &c, const Color &color)
+	{
+		if (m_VertexCount + 3 > 1024 || m_IndexCount + 3 > 1024) {
+			Flush();
+		}
+		m_VertexData[m_VertexCount++] = { { a.x, a.y, 0.0f, 1.0f }, color };
+		m_VertexData[m_VertexCount++] = { { b.x, b.y, 0.0f, 1.0f }, color };
+		m_VertexData[m_VertexCount++] = { { c.x, c.y, 0.0f, 1.0f }, color };
+		m_IndexData[m_IndexCount++] = m_VertexCount - 3;
+		m_IndexData[m_IndexCount++] = m_VertexCount - 2;
+		m_IndexData[m_IndexCount++] = m_VertexCount - 1;
+	}
+
+	void Context::DrawLine(const Point &p1, const Point &p2, float width, const Color &color)
+	{
+		if (m_VertexCount + 4 > 1024 || m_IndexCount + 6 > 1024) {
+			Flush();
+		}
+		glm::vec2 dir = glm::normalize(glm::vec2(p2.x, p2.y) - glm::vec2(p1.x, p1.y));
+		glm::vec2 normal = glm::vec2(-dir.y, dir.x) * width * 0.5f;
+		m_VertexData[m_VertexCount++] = { { glm::vec2(p1.x, p1.y) + normal, 0.0f, 1.0f }, color };
+		m_VertexData[m_VertexCount++] = { { glm::vec2(p2.x, p2.y) + normal, 0.0f, 1.0f }, color };
+		m_VertexData[m_VertexCount++] = { { glm::vec2(p2.x, p2.y) - normal, 0.0f, 1.0f }, color };
+		m_VertexData[m_VertexCount++] = { { glm::vec2(p1.x, p1.y) - normal, 0.0f, 1.0f }, color };
+		m_IndexData[m_IndexCount++] = m_VertexCount - 4;
+		m_IndexData[m_IndexCount++] = m_VertexCount - 3;
+		m_IndexData[m_IndexCount++] = m_VertexCount - 2;
+		m_IndexData[m_IndexCount++] = m_VertexCount - 2;
+		m_IndexData[m_IndexCount++] = m_VertexCount - 1;
+		m_IndexData[m_IndexCount++] = m_VertexCount - 4;
+	}
+
 	void Context::Flush() {
 		PROFILE_SCOPE("GUI flush buffers");
 		if (m_IndexCount == 0)
 			return;
 
-#if BUILD_GL
-		glBindVertexArray(m_VAO);
-#endif /* BUILD_GL */
 		glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_VertexCount * sizeof(Vertex), m_VertexData.data());
 		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, m_IndexCount * sizeof(uint16_t), m_IndexData.data());
-		glUseProgram(m_FlatShader);
+		glUseProgram(m_QuadFlatShader);
 		glDrawElements(GL_TRIANGLES, m_IndexCount, GL_UNSIGNED_SHORT, nullptr);
 		m_VertexCount = 0;
 		m_IndexCount = 0;
@@ -252,7 +174,7 @@ namespace gui {
 	void Context::UseShader(Shader shader) {
 		switch (shader) {
 			case Shader::Flat:
-				glUseProgram(m_FlatShader);
+				glUseProgram(m_QuadFlatShader);
 				break;
 			default:
 				throw std::logic_error("Unknown shader");
@@ -269,7 +191,7 @@ namespace gui {
 		auto it = m_UniformLocations.find(name);
 		if (it == m_UniformLocations.end()) {
 			PROFILE_SCOPE("Uniform cache miss");
-			location = glGetUniformLocation(m_FlatShader, name.c_str());
+			location = glGetUniformLocation(m_QuadFlatShader, name.c_str());
 			if (location == -1) {
 				throw std::runtime_error(std::format("Uniform '{}' not found in shader", name));
 			}

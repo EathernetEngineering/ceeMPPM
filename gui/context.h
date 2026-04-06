@@ -30,16 +30,18 @@
 
 namespace cee {
 namespace gui {
+
+	struct Vertex {
+		glm::vec4 position;
+		Color color;
+	};
+
 	class Context {
 	public:
 		enum class Shader {
 			Flat
 		};
 
-		struct Vertex {
-			glm::vec4 position;
-			Color color;
-		};
 	public:
 		Context();
 		~Context();
@@ -51,6 +53,8 @@ namespace gui {
 		void PopTransform();
 
 		void DrawRect(const Rect &rect, const Color &color);
+		void DrawTriangle(const Point &a, const Point &b, const Point &c, const Color &color);
+		void DrawLine(const Point &p1, const Point &p2, float width, const Color &color);
 		void Flush();
 
 		void UseShader(Shader shader);
@@ -62,8 +66,8 @@ namespace gui {
 		GLint GetUniformLocation(const std::string& name);
 
 	private:
-		uint32_t m_FlatShader;
-		uint32_t m_VAO, m_VBO, m_EBO;
+		uint32_t m_QuadFlatShader;
+		uint32_t m_VBO, m_EBO;
 		uint32_t m_VertexCount, m_IndexCount;
 		glm::vec2 m_Viewport;
 		glm::mat4 m_Projection;

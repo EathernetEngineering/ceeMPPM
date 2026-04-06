@@ -29,13 +29,16 @@
 
 #include <cee/gui/gui.h>
 #include <cee/gui/box.h>
+
+#include <glad/gles2.h>
+
 #include <chrono>
 #include <csignal>
+#include <filesystem>
 #include <functional>
 
 #include <getopt.h>
 #include <linux/input-event-codes.h>
-#include <signal.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 
 enum {

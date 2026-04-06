@@ -19,7 +19,6 @@
 #ifndef CEE_MPPM_H_
 #define CEE_MPPM_H_
 
-#include <cee/mppm/shader.h>
 #include <cee/mppm/event.h>
 
 #include <cee/hal/gfx.h>
@@ -54,7 +53,6 @@ private:
 
 private:
 	bool m_Running;
-	//std::shared_ptr<Renderer> m_Renderer;
 	std::unique_ptr<cee::hal::GraphicsContext> m_HalGfx;
 
 private:

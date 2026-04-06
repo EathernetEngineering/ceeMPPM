@@ -32,7 +32,6 @@ list(APPEND MPPM_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/input.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/log.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/mppm.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/shader.cpp
 )
 list(APPEND MPPM_PRIVATE_HEADERS
 	${CMAKE_CURRENT_SOURCE_DIR}/assertions.h
@@ -49,7 +48,6 @@ list(APPEND MPPM_PUBLIC_HEADERS
 	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/parser.h
 	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/renderer.h
 	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/rng.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/shader.h
 )
 
 add_library(ceeMPPM ${MPPM_SOURCES})

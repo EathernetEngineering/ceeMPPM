@@ -26,7 +26,6 @@
 enum class GLSLVersion {
 	ES_100,
 	ES_320,
-	GL_330_CORE
 };
 
 inline GLSLVersion GLSLSVersionFromString(std::string_view versionString) {
@@ -34,13 +33,10 @@ inline GLSLVersion GLSLSVersionFromString(std::string_view versionString) {
 		return GLSLVersion::ES_320;
 	} else if (versionString.find("OpenGL ES 2.0") != std::string_view::npos) {
 		return GLSLVersion::ES_100;
-	} else if (versionString.find("OpenGL 3.3") != std::string_view::npos) {
-		return GLSLVersion::GL_330_CORE;
 	}
-	return GLSLVersion::GL_330_CORE;
+	return GLSLVersion::ES_100;
 }
 
-#if BUILD_GLES
 constexpr std::string_view vertexShaderSourceES2 =
 	"#version 100\n"
 	"attribute vec4 aPosition;\n"
@@ -91,33 +87,5 @@ constexpr std::string_view fragmentShaderSourceES3 =
 	"void main() {\n"
 	"	fragColor = vColor;\n"
 	"}\n";
-#endif /* BUILD_GLES */
-#if BUILD_GL
-constexpr std::string_view vertexShaderSource =
-	"#version 330 core\n"
-	"\n"
-	"layout (location = 0) in vec4 aPosition;\n"
-	"layout (location = 1) in vec4 aColor;\n"
-	"\n"
-	"uniform mat4 uProj;\n"
-	"uniform mat4 uTrans;\n"
-	"\n"
-	"out vec4 vColor;\n"
-	"\n"
-	"void main() {\n"
-	"	gl_Position = uProj * uTrans * aPosition;\n"
-	"	vColor = aColor;\n"
-	"}\n";
-constexpr std::string_view fragmentShaderSource =
-	"#version 330 core\n"
-	"\n"
-	"in vec4 vColor;\n"
-	"\n"
-	"layout (location = 0) out vec4 fragColor;\n"
-	"\n"
-	"void main() {\n"
-	"	fragColor = vColor;\n"
-	"}\n";
-#endif /* BUILD_GL */
 
 #endif
