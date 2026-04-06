@@ -36,6 +36,9 @@ public:
 	static std::shared_ptr<spdlog::logger> GetLogger() { return s_Logger; }
 	static std::shared_ptr<spdlog::logger> GetCoreLogger() { return s_CoreLogger; }
 
+	static void SetLogLevel(spdlog::level::level_enum level);
+	static void SetLogLocation(const std::string& path);
+
 private:
 	static void RemoveDeadChildren();
 
@@ -43,6 +46,9 @@ private:
 	static std::shared_ptr<spdlog::logger> s_Logger;
 	static std::shared_ptr<spdlog::logger> s_CoreLogger;
 	static std::vector<std::weak_ptr<spdlog::logger>> s_Children;
+
+	static spdlog::level::level_enum m_LogLevel;
+	static std::string m_LogLocation;
 };
 }
 

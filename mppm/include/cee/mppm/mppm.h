@@ -50,6 +50,9 @@ private:
 	static void SigHandler(int SIG);
 
 private:
+	void ParseCommandLineArgs(int argc, char *argv[]);
+
+private:
 	bool m_Running;
 	//std::shared_ptr<Renderer> m_Renderer;
 	std::unique_ptr<cee::hal::GraphicsContext> m_HalGfx;

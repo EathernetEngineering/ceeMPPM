@@ -31,17 +31,23 @@ namespace cee {
 std::shared_ptr<spdlog::logger> Log::s_Logger;
 std::shared_ptr<spdlog::logger> Log::s_CoreLogger;
 std::vector<std::weak_ptr<spdlog::logger>> Log::s_Children;
+spdlog::level::level_enum Log::m_LogLevel = spdlog::level::trace;
+std::string Log::m_LogLocation;
 
 void Log::Init()
 {
 	std::vector<spdlog::sink_ptr> logSinks;
 	logSinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
 	std::filesystem::path logFile;
-	const char *home = std::getenv("HOME");
-	if (home) {
-		logFile = std::filesystem::absolute(std::filesystem::path(home) / ".local/share/ceeHealth/mppm.log");
-	} else { 
-		logFile = std::filesystem::absolute("/tmp/mppm.log");
+	if (!m_LogLocation.empty()) {
+		logFile = std::filesystem::absolute(m_LogLocation) / "mppm.log";
+	} else {
+		const char *home = std::getenv("HOME");
+		if (home) {
+			logFile = std::filesystem::absolute(std::filesystem::path(home) / ".local/share/ceeHealth/mppm.log");
+		} else { 
+			logFile = std::filesystem::absolute("/tmp/mppm.log");
+		}
 	}
 	logSinks.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFile, true));
 
@@ -50,13 +56,13 @@ void Log::Init()
 
 	s_Logger = std::make_shared<spdlog::logger>("MPPM Client", begin(logSinks), end(logSinks));
 	spdlog::register_logger(s_Logger);
-	s_Logger->set_level(spdlog::level::trace);
-	s_Logger->flush_on(spdlog::level::trace);
+	s_Logger->set_level(m_LogLevel);
+	s_Logger->flush_on(m_LogLevel);
 
 	s_CoreLogger = std::make_shared<spdlog::logger>("MPPM Core", begin(logSinks), end(logSinks));
 	spdlog::register_logger(s_CoreLogger);
-	s_CoreLogger->set_level(spdlog::level::trace);
-	s_CoreLogger->flush_on(spdlog::level::trace);
+	s_CoreLogger->set_level(m_LogLevel);
+	s_CoreLogger->flush_on(m_LogLevel);
 
 	// TODO: Use a ringbuffer sink instead, this wasn't being used anyway
 	// spdlog::enable_backtrace(128);
@@ -76,7 +82,11 @@ void Log::Shutdown()
 
 void Log::AddLogger(std::shared_ptr<spdlog::logger> child)
 {
-	if (child.get() == nullptr) throw std::runtime_error("nullptr passeed to AddLogger");
+	if (child.get() == nullptr)
+		throw std::runtime_error("nullptr passeed to AddLogger");
+
+	child->set_level(m_LogLevel);
+	child->flush_on(m_LogLevel);
 	child->sinks().insert(std::end(child->sinks()),
 						std::begin(s_Logger->sinks()),
 						std::end(s_Logger->sinks()));
@@ -85,7 +95,8 @@ void Log::AddLogger(std::shared_ptr<spdlog::logger> child)
 
 void Log::RemoveLogger(std::shared_ptr<spdlog::logger> childToRemove)
 {
-	if (childToRemove.get() == nullptr) throw std::runtime_error("nullptr passed to RemoveLogger");
+	if (childToRemove.get() == nullptr)
+		throw std::runtime_error("nullptr passed to RemoveLogger");
 
 	// Check that the logger to be removed is actually known about by this class
 	auto childIt = std::find_if(s_Children.begin(), s_Children.end(),
@@ -128,6 +139,16 @@ void Log::RemoveLogger(std::shared_ptr<spdlog::logger> childToRemove)
 		// This is only a concern if this class ever knew about the child
 		s_Children.erase(childIt);
 	}
+}
+
+void Log::SetLogLevel(spdlog::level::level_enum level)
+{
+	m_LogLevel = level;
+}
+
+void Log::SetLogLocation(const std::string& path)
+{
+	m_LogLocation = path;
 }
 
 void Log::RemoveDeadChildren()

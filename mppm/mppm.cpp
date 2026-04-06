@@ -29,21 +29,36 @@
 
 #include <cee/gui/gui.h>
 #include <cee/gui/box.h>
-
 #include <chrono>
 #include <csignal>
 #include <functional>
 
-#include <signal.h>
-
+#include <getopt.h>
 #include <linux/input-event-codes.h>
+#include <signal.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 
+enum {
+	ARG_LOGFILE = 1
+};
+
+static const char *g_OptString = "g:i:l:hv";
+static const option g_LongOptions[] = {
+	{ "help", no_argument, nullptr, 'h' },
+	{ "version", no_argument, nullptr, 'v' },
+	{ "logfile", required_argument, nullptr, ARG_LOGFILE },
+	{ nullptr, 0, nullptr, 0 }
+};
+
 namespace cee {
+static void PrintHelpMessage(const char *cmd);
+static void PrintVersion(const char *cmd);
+
 MPPM* MPPM::s_Instance = nullptr;
 
 MPPM::MPPM(int argc, char *argv[]) {
 	(void)argc, (void)argv; // Supress unused warning
+	ParseCommandLineArgs(argc, argv);
 	PROFILE_SCOPE("Initialization");
 	if (s_Instance) {
 		std::fprintf(stderr, "More than one instance of cee::MPPM is not allowed.");
@@ -66,17 +81,28 @@ MPPM::MPPM(int argc, char *argv[]) {
 	}
 	Input::SetEventCallback(std::bind(&MPPM::OnEvent, this, std::placeholders::_1));
 
+	if (hal::GetGfxBackend() == HAL_GFX_BACKEND_NONE) {
 #if BUILD_HAL_DRM
-	hal::SetGfxBackend(HAL_GFX_BACKEND_DRM);
+		hal::SetGfxBackend(HAL_GFX_BACKEND_DRM);
 #elif BUILD_HAL_X11
-	hal::SetGfxBackend(HAL_GFX_BACKEND_X11);
+		CEE_CORE_TRACE("Graphics DRM backend not detected, falling back to X11");
+		hal::SetGfxBackend(HAL_GFX_BACKEND_X11);
+#else
+		CEE_CORE_ERROR("No graphics backend detected!");
+		throw std::runtime_error("No graphics backend detected");
 #endif
-#if BUILD_HAL_I2C
-	// FIXME: Change this to I2C once implemented.
-	hal::SetI2CBackend(HAL_I2C_BACKEND_SIM);
-#elif BUILD_HAL_I2C_SIM
-	hal::SetI2CBackend(HAL_I2C_BACKEND_SIM);
+	}
+	if (hal::GetI2CBackend() == HAL_I2C_BACKEND_NONE) {
+#if BUILD_HAL_I2C_HW
+		hal::SetI2CBackend(HAL_I2C_BACKEND_HW);
+#elif BUILD_HAL_I2C_MOCK
+		CEE_CORE_TRACE("I2C hardware backend not detected, falling back to mock");
+		hal::SetI2CBackend(HAL_I2C_BACKEND_MOCK);
+#else
+		CEE_CORE_ERROR("No I2C backend detected!");
+		throw std::runtime_error("No I2C backend detected");
 #endif
+	}
 
 	if (hal::Init()) {
 		CEE_CORE_ERROR("Failed to initialize hardware abstration layer!");
@@ -223,6 +249,7 @@ void MPPM::OnKeyPress(KeyDownEvent &e) {
 
 void MPPM::OnKeyPress(KeyUpEvent &e) {
 	if (e.GetKeycode() == KEY_Q) {
+		CEE_CORE_INFO("q key pressed, exiting...");
 		ApplicationExitEvent exitEvent;
 		OnEvent(exitEvent);
 	}
@@ -278,6 +305,86 @@ void MPPM::SigHandler(int SIG) {
 		exit(1);
 		break;
 	}
+}
+
+void MPPM::ParseCommandLineArgs(int argc, char *argv[]) {
+	int opt;
+	while ((opt = getopt_long(argc, argv, g_OptString, g_LongOptions, nullptr)) != -1) {
+		switch (opt) {
+		case 'g':
+			if (strcmp(optarg, "drm") == 0) {
+				hal::SetGfxBackend(HAL_GFX_BACKEND_DRM);
+			} else if (strcmp(optarg, "x11") == 0) {
+				hal::SetGfxBackend(HAL_GFX_BACKEND_X11);
+			} else {
+				std::fprintf(stderr, "Invalid graphics backend: %s\n", optarg);
+				PrintHelpMessage(argv[0]);
+			}
+			break;
+		case 'i':
+			if (strcmp(optarg, "hw") == 0) {
+				hal::SetI2CBackend(HAL_I2C_BACKEND_HW);
+			} else if (strcmp(optarg, "mock") == 0) {
+				hal::SetI2CBackend(HAL_I2C_BACKEND_MOCK);
+			} else {
+				std::fprintf(stderr, "Invalid i2c backend: %s\n", optarg);
+				PrintHelpMessage(argv[0]);
+			}
+			break;
+		case 'l':
+			if (strcmp(optarg, "debug") == 0) {
+				Log::SetLogLevel(spdlog::level::debug);
+			} else if (strcmp(optarg, "trace") == 0) {
+				Log::SetLogLevel(spdlog::level::trace);
+			} else if (strcmp(optarg, "info") == 0) {
+				Log::SetLogLevel(spdlog::level::info);
+			} else if (strcmp(optarg, "warn") == 0) {
+				Log::SetLogLevel(spdlog::level::warn);
+			} else if (strcmp(optarg, "error") == 0) {
+				Log::SetLogLevel(spdlog::level::err);
+			} else {
+				std::fprintf(stderr, "Invalid log level: %s\n", optarg);
+				PrintHelpMessage(argv[0]);
+			}
+			break;
+		case ARG_LOGFILE: {
+			if (!std::filesystem::is_directory(optarg)) {
+				std::fprintf(stderr, "Log file path must be absolute: %s\n", optarg);
+				PrintHelpMessage(argv[0]);
+			}
+			Log::SetLogLocation(optarg);
+			break;
+		}
+		case 'h':
+			PrintHelpMessage(argv[0]);
+			break;
+		case 'v':
+			PrintVersion(argv[0]);
+			break;
+		default:
+			PrintHelpMessage(argv[0]);
+			break;
+		}
+	}
+}
+
+static void PrintHelpMessage(const char *cmd) {
+	std::printf("Usage: %s [options]\n", cmd);
+	std::printf("Options:\n");
+	std::printf("\t-g <backend>     Select graphics backend. {drm|x11} default: drm\n");
+	std::printf("\t-h, --help       Show this help message and exit\n");
+	std::printf("\t-i <backend>     Select i2c backend. {hw|mock} default: hw\n");
+	std::printf("\t-l <level>       Set log level {debug|trace|info|warn|error} default: info\n");
+	std::printf("\t--logfile=<file> Set log file path.");
+	std::printf("\t                 default: $HOME/.local/share/ceeMPPM/\n");
+	std::printf("\t-v, --version    Show version information and exit\n");
+	std::exit(0);
+}
+
+static void PrintVersion(const char *cmd) {
+	(void)cmd; // Supress unused warning
+	std::printf("ceeMPPM version %d.%d\n", MPPM_VERSION_MAJOR, MPPM_VERSION_MINOR);
+	std::exit(0);
 }
 }
 

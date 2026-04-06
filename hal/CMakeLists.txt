@@ -16,12 +16,14 @@
 
 cmake_minimum_required(VERSION 4.0)
 
+project(ceeHAL LANGUAGES C CXX VERSION 1.0.0)
+
 find_package(PkgConfig REQUIRED)
 
 option(BUILD_HAL_DRM "build HAL DRM graphics backend" ON)
 option(BUILD_HAL_X11 "build HAL X11 graphics backend" OFF)
-option(BUILD_HAL_I2C "build HAL I2C backend for GLX" ON)
-option(BUILD_HAL_I2C_SIM "build HAL simulated I2C backend for GLX" ON)
+option(BUILD_HAL_I2C_HW "build HAL I2C hardware backend" ON)
+option(BUILD_HAL_I2C_MOCK "build HAL simulated I2C mock backend" ON)
 
 list(APPEND HAL_PRIVATE_INCLUDEDIRS /usr/include ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 list(APPEND HAL_PUBLIC_INCLUDEDIRS ${CMAKE_CURRENT_SOURCE_DIR}/include /usr/include/libdrm)

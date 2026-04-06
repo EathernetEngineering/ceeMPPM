@@ -31,11 +31,11 @@ namespace hal {
 			return -1;
 		}
 		if (g_GfxBackend == HAL_GFX_BACKEND_NONE) {
-			CEE_CRITICAL("HAL graphics backend not set!!!");
+			CEE_ERROR("HAL graphics backend not set!!!");
 			return -1;
 		}
 		if (g_I2CBackend == HAL_I2C_BACKEND_NONE) {
-			CEE_CRITICAL("HAL I2C backend not set!!!");
+			CEE_ERROR("HAL I2C backend not set!!!");
 			return -1;
 		}
 

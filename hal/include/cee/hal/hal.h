@@ -32,8 +32,8 @@ typedef enum HalGfxBackend hal_gfx_backend_t;
 
 enum HalI2CBackend {
 	HAL_I2C_BACKEND_NONE = 0,
-	HAL_I2C_BACKEND_I2C  = 1,
-	HAL_I2C_BACKEND_SIM  = 2,
+	HAL_I2C_BACKEND_HW  = 1,
+	HAL_I2C_BACKEND_MOCK  = 2,
 	
 	HAL_I2C_BACKEND_ENUM_MAX
 };
