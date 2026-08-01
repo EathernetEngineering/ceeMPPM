@@ -21,7 +21,6 @@
 #include <cee/mppm/log.h>
 
 #include <cerrno>
-#include <climits>
 
 #include <dirent.h>
 #include <linux/input-event-codes.h>
@@ -60,7 +59,7 @@ int Input::Init() {
 	int ret;
 	Keyboard *keyboard;
 	nfds_t i;
-	int numIncludes = 0;
+	uint64_t numIncludes = 0;
 	const char* includes[64];
 
 	tcgetattr(fileno(stdin), &s_DefTerm);
@@ -341,7 +340,6 @@ void Input::ProcessEvent(Keyboard *keyboard, uint16_t type, uint16_t code, int32
 	xkb_keycode_t keycode;
 	xkb_keymap *keymap;
 	xkb_state_component changed;
-	xkb_compose_status status;
 
 	if (type != EV_KEY) {
 		return;
@@ -365,6 +363,7 @@ void Input::ProcessEvent(Keyboard *keyboard, uint16_t type, uint16_t code, int32
 		KeyDownEvent e(keycode);
 		s_EventCallback(e);
 	}
+	(void)changed; /* Unused variable */
 }
 
 void Input::DefaultCallback(Event &e) {

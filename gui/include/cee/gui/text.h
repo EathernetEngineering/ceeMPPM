@@ -16,54 +16,29 @@
  * with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CEE_GUI_BOX_H_
-#define CEE_GUI_BOX_H_
+#ifndef CEE_GUI_TEXT_H_
+#define CEE_GUI_TEXT_H_
 
 #include <cee/gui/widget.h>
+
+#include <cee/font/fonts.h>
+
 #include <glm/vec4.hpp>
 
 namespace cee {
 namespace gui {
-	class Box : public Widget {
+	class Text : public Widget {
 	public:
-		enum class StackDirection : uint8_t {
-			Horizontal,
-			Vertical
-		};
-
-	public:
-		Box()
-		 : m_ExplicitSize(false), m_Color(0.f, 0.f, 0.f, 0.f)
+		Text(const std::string &text, int size)
+		 : m_Text(text), m_Size(size), m_Color(1.f, 1.f, 1.f, 1.f)
 		{}
-		Box(float width, float height)
-		 : m_ExplicitSize(true), m_Color(0.f, 0.f, 0.f, 0.f)
-		{
-			m_Desired = { width, height };
-		}
-		Box(const Color& color)
-		 : m_ExplicitSize(false), m_Color(color)
+		Text(const std::string& text, int size, const Color& color)
+		 : m_Text(text), m_Size(size), m_Color(color)
 		{}
-		Box(float width, float height, const Color& color)
-		 : m_ExplicitSize(true), m_Color(color)
-		{
-			m_Desired = { width, height };
-		}
-		virtual ~Box() = default;
+		virtual ~Text() = default;
 
-		inline void Resize(float width, float height) {
-			if (width == 0.f && height == 0.f) {
-				m_ExplicitSize = false;
-				return;
-			}
-			m_ExplicitSize = true;
-			m_Desired = { width, height };
-		}
-		inline Size GetSize() const { return m_Desired; }
-
-		inline void SetStackDirection(StackDirection dir) {
-			m_StackDirection = dir;
-		}
-
+		inline void SetText(const std::string &text) { m_Text = text; }
+		inline void Resize(int size) { m_Size = size; }
 		inline void SetColor(const Color& color) { m_Color = color; }
 
 	protected:
@@ -71,12 +46,11 @@ namespace gui {
 		virtual Rect Clip() const override { return m_AbsoluteRect; }
 
 		virtual Size OnMeasure(const Constraints &c) override;
-		virtual void OnArrange() override;
 		virtual void OnRender() override;
 
 	private:
-		bool m_ExplicitSize;
-		StackDirection m_StackDirection = StackDirection::Horizontal;
+		std::string m_Text;
+		int m_Size;
 		Color m_Color;
 	};
 }

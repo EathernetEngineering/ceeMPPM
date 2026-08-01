@@ -21,9 +21,7 @@ project(MultiPPM LANGUAGES C CXX VERSION 1.0.0)
 find_package(PkgConfig REQUIRED)
 
 option(CEE_BUILD_TESTS "Build tests" OFF)
-option(BUILD_EGL "Include EGL in final build" ON)
-option(BUILD_GLES "Include GLES in final build" ON)
-option(BUILD_GL "Include OpenGL in final build" OFF)
+option(CEE_USE_ASAN "Bulild with address sanitizer" OFF)
 option(USE_TRACY "Bulild with Tracy profiler" OFF)
 
 if (USE_TRACY)

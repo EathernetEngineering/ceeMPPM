@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
 		PROFILE_SCOPE("Application initialization");
 		app = std::make_unique<cee::MPPM>(argc, argv);
 	} catch(const std::runtime_error& e) {
-		fprintf(stderr, "Caught initialization exception:\n");
+		fprintf(stderr, "!!! FATAL: Caught initialization exception:\n");
 		fprintf(stderr, "%s\n", e.what());
 		std::exit(EXIT_FAILURE);
 	}
@@ -40,9 +40,13 @@ int main(int argc, char **argv) {
 		PROFILE_SCOPE("Run");
 		ret = app->Run();
 	} catch(const std::runtime_error& e) {
-		fprintf(stderr, "Caught runtime exception\n");
+		fprintf(stderr, "!!! FATAL: Caught runtime exception\n");
 		fprintf(stderr, "%s\n", e.what());
-		std::exit(EXIT_FAILURE);
+		ret = EXIT_FAILURE;
+	} catch(const std::logic_error& e) {
+		fprintf(stderr, "!!! FATAL: Caught logic error\n");
+		fprintf(stderr, "%s\n", e.what());
+		ret = EXIT_FAILURE;
 	}
 	app.reset();
 

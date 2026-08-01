@@ -33,36 +33,23 @@ list(APPEND MPPM_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/log.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/mppm.cpp
 )
-list(APPEND MPPM_PRIVATE_HEADERS
-	${CMAKE_CURRENT_SOURCE_DIR}/assertions.h
-	${CMAKE_CURRENT_SOURCE_DIR}/util.h
-)
-
-list(APPEND MPPM_PUBLIC_HEADERS
-	${CMAKE_CURRENT_BINARY_DIR}/include/cee/mppm/config.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/mppm.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/event.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/files.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/input.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/log.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/parser.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/renderer.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/mppm/rng.h
-)
 
 add_library(ceeMPPM ${MPPM_SOURCES})
 
 set_target_properties(ceeMPPM
 	PROPERTIES
 	CXX_STANDARD 20
-	CXX_STANDARD_REQUIRED ON
-	PUBLIC_HEADER "${MPPM_PUBLIC_HEADERS}"
-	PRIVATE_HEADER "${MPPM_PRIVATE_HEADERS}")
+	CXX_STANDARD_REQUIRED ON)
 
 target_include_directories(ceeMPPM PRIVATE ${MPPM_PRIVATE_INCLUDEDIRS})
 target_include_directories(ceeMPPM PUBLIC ${MPPM_PUBLIC_INCLUDEDIRS})
 target_link_directories(ceeMPPM PRIVATE ${MPPM_LIBRARYDIRS})
 target_link_libraries(ceeMPPM PUBLIC ${MPPM_LIBRARIES})
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND CEE_USE_ASAN)
+	target_compile_options(ceeMPPM PRIVATE -Wall -Wextra -Wno-unused-parameter -fsanitize=address,leak)
+	target_link_options(ceeMPPM INTERFACE -fsanitize=address,leak)
+endif()
 
 configure_file(config.h.in "${CMAKE_CURRENT_BINARY_DIR}/include/cee/mppm/config.h" @ONLY)
 

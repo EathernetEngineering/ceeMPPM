@@ -21,6 +21,8 @@
 
 #include <cee/gui/widget.h>
 
+#include <cee/font/fonts.h>
+
 #include <spdlog/spdlog.h>
 
 #include <memory>
@@ -30,10 +32,12 @@ namespace gui {
 	int Init();
 	void Shutdown();
 
+	void AddFont(std::shared_ptr<font::Font> font);
+
 	void SetRootNode(Widget *node);
 
-	int BeginFrame(const glm::vec2 &viewport);
-	int Render(float viewportWidth, float viewportHeight);
+	int BeginFrame(const Size &viewport);
+	int Render(const Size &viewport);
 	void EndFrame();
 	inline int HandleEvents() { return 0; }
 

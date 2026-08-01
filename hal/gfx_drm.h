@@ -43,6 +43,8 @@ namespace hal {
 
 			virtual const char* GetVersionString() const override;
 			virtual const char* GetShadingVersionString() const override;
+			virtual float GetHDPI() const override { return m_DRMDisplay.m_HDPI; }
+			virtual float GetVDPI() const override { return m_DRMDisplay.m_VDPI; }
 			virtual void SwapBuffers() override;
 
 		protected:
@@ -63,6 +65,7 @@ namespace hal {
 				drmEventContext eventContext;
 
 				int width, height;
+				float m_HDPI = 0.f, m_VDPI = 0.f;
 			} m_DRMDisplay;
 
 			struct GBMFramebuffer {

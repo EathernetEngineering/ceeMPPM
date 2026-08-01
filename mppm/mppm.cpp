@@ -29,6 +29,7 @@
 
 #include <cee/gui/gui.h>
 #include <cee/gui/box.h>
+#include <cee/gui/text.h>
 
 #include <glad/gles2.h>
 
@@ -60,7 +61,6 @@ static void PrintVersion(const char *cmd);
 MPPM* MPPM::s_Instance = nullptr;
 
 MPPM::MPPM(int argc, char *argv[]) {
-	(void)argc, (void)argv; // Supress unused warning
 	ParseCommandLineArgs(argc, argv);
 	PROFILE_SCOPE("Initialization");
 	if (s_Instance) {
@@ -69,7 +69,6 @@ MPPM::MPPM(int argc, char *argv[]) {
 		throw std::runtime_error("More than one instance of cee::MPPM is not allowed.");
 	}
 	s_Instance = this;
-	bool running = true;
 
 	Log::Init();
 	hal::InitLogger();
@@ -145,6 +144,12 @@ int MPPM::Run() {
 	std::unique_ptr<cee::gui::Box> lesbianFlagStrip5 = std::make_unique<cee::gui::Box>();
 	std::unique_ptr<cee::gui::Box> lesbianFlagStrip6 = std::make_unique<cee::gui::Box>();
 	std::unique_ptr<cee::gui::Box> lesbianFlagStrip7 = std::make_unique<cee::gui::Box>();
+	std::unique_ptr<cee::gui::Text> traText = std::make_unique<cee::gui::Text>(
+			"Trans \U0001F3F3\U0000FE0F\U0000200D\U0001F308",
+			24, gui::Color{ 0.1f, 0.1f, 0.1f, 1.f });
+	std::unique_ptr<cee::gui::Text> lesText = std::make_unique<cee::gui::Text>(
+			"Lesbian \U0001F2F2\U0000FE0F\U0000200D\U0001F308",
+			12, gui::Color{ 0.1f, 0.1f, 0.1f, 1.f });
 
 	{
 		PROFILE_SCOPE("Setup GUI");
@@ -200,6 +205,9 @@ int MPPM::Run() {
 		lesbianFlagStrip7->Resize(250.f, 71.429f);
 		lesbianFlagStrip7->SetColor(gui::HexToColor(0xA30262FF));
 		lesbianBox->AddChild(lesbianFlagStrip7.get());
+
+		transFlagStrip1->AddChild(traText.get());
+		lesbianFlagStrip1->AddChild(lesText.get());
 	}
 
 	std::chrono::time_point start = std::chrono::high_resolution_clock::now();
@@ -208,12 +216,12 @@ int MPPM::Run() {
 	m_Running = true;
 	while (m_Running) {
 		PROFILE_SCOPE("Main loop");
-		uint32_t windowWidth = m_HalGfx->GetWidth();
-		uint32_t windowHeight = m_HalGfx->GetHeight();
+		float windowWidth = static_cast<float>(m_HalGfx->GetWidth());
+		float windowHeight = static_cast<float>(m_HalGfx->GetHeight());
 		cee::gui::BeginFrame({ windowWidth, windowHeight });
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		cee::gui::Render(windowWidth, windowHeight);
+		cee::gui::Render({ windowWidth, windowHeight });
 		cee::gui::EndFrame();
 		m_HalGfx->SwapBuffers();
 		PROFILER_FRAME_MARK();

@@ -33,10 +33,6 @@ list(APPEND PROFILER_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/profiler.cpp
 )
 
-list(APPEND PROFILER_PUBLIC_HEADERS
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/profiler/profiler.h
-)
-
 if (USE_TRACY)
 	add_library(ceeProfiler SHARED ${PROFILER_SOURCES})
 	target_include_directories(ceeProfiler PRIVATE ${PROFILER_PRIVATE_INCLUDEDIRS})
@@ -52,8 +48,5 @@ endif()
 set_target_properties(ceeProfiler
 	PROPERTIES
 	CXX_STANDARD 20
-	CXX_STANDARD_REQUIRED ON
-	PUBLIC_HEADER "${PROFILER_PUBLIC_HEADERS}")
-
-
+	CXX_STANDARD_REQUIRED ON)
 

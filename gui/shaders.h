@@ -21,71 +21,46 @@
 
 #include <config.h>
 
+#include <glad/gl.h>
+#include <glm/glm.hpp>
+
+#include <string>
 #include <string_view>
+#include <unordered_map>
 
-enum class GLSLVersion {
-	ES_100,
-	ES_320,
-};
+namespace cee {
+namespace gui {
+	// enum class GLSLVersion {
+	// 	ES_100,
+	// 	ES_320,
+	// };
+	//
+	// inline GLSLVersion GLSLSVersionFromString(std::string_view versionString) {
+	// 	if (versionString.find("OpenGL ES 3.2") != std::string_view::npos) {
+	// 		return GLSLVersion::ES_320;
+	// 	} else if (versionString.find("OpenGL ES 2.0") != std::string_view::npos) {
+	// 		return GLSLVersion::ES_100;
+	// 	}
+	// 	return GLSLVersion::ES_100;
+	// }
 
-inline GLSLVersion GLSLSVersionFromString(std::string_view versionString) {
-	if (versionString.find("OpenGL ES 3.2") != std::string_view::npos) {
-		return GLSLVersion::ES_320;
-	} else if (versionString.find("OpenGL ES 2.0") != std::string_view::npos) {
-		return GLSLVersion::ES_100;
-	}
-	return GLSLVersion::ES_100;
+	class Shader {
+	public:
+		Shader(std::string_view vertSrc, std::string_view fragSrc);
+		~Shader();
+
+		void Bind();
+
+		void SetUniform(const std::string& name, const glm::mat4& value);
+
+	private:
+		GLint GetUniformLocation(const std::string& name);
+
+	private:
+		GLint m_Program;
+		std::unordered_map<std::string, GLint> m_UniformLocations;
+	};
 }
-
-constexpr std::string_view vertexShaderSourceES2 =
-	"#version 100\n"
-	"attribute vec4 aPosition;\n"
-	"attribute vec4 aColor;\n"
-	"\n"
-	"uniform mat4 uPrpj;\n"
-	"uniform mat4 uTrans;\n"
-	"\n"
-	"varying vec4 vColor;\n"
-	"\n"
-	"void main() {\n"
-	"	gl_Position = uProj * uTrans * aPosition;\n"
-	"	vColor = aColor;\n"
-	"}\n";
-constexpr std::string_view fragmentShaderSourceES2 =
-	"#version 100\n"
-	"precision mediump float;\n"
-	"\n"
-	"varying vec4 vColor;\n"
-	"\n"
-	"void main() {\n"
-	"	gl_FragColor = vColor;\n"
-	"}\n";
-constexpr std::string_view vertexShaderSourceES3 =
-	"#version 320 es\n"
-	"\n"
-	"layout (location = 0) in vec4 aPosition;\n"
-	"layout (location = 1) in vec4 aColor;\n"
-	"\n"
-	"uniform mat4 uProj;\n"
-	"uniform mat4 uTrans;\n"
-	"\n"
-	"out vec4 vColor;\n"
-	"\n"
-	"void main() {\n"
-	"	gl_Position = uProj * uTrans * aPosition;\n"
-	"	vColor = aColor;\n"
-	"}\n";
-constexpr std::string_view fragmentShaderSourceES3 =
-	"#version 320 es\n"
-	"\n"
-	"precision mediump float;\n"
-	"\n"
-	"in vec4 vColor;\n"
-	"\n"
-	"out vec4 fragColor;\n"
-	"\n"
-	"void main() {\n"
-	"	fragColor = vColor;\n"
-	"}\n";
+}
 
 #endif

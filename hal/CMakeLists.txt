@@ -44,17 +44,6 @@ list(APPEND HAL_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/log.cpp
 )
 
-list(APPEND HAL_PUBLIC_HEADERS
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/hal/gfx.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/hal/hal.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/cee/hal/i2c.h
-)
-
-list(APPEND HAL_PRIVATE_HEADERS
-	${CMAKE_CURRENT_SOURCE_DIR}/log.h
-	${CMAKE_CURRENT_SOURCE_DIR}/util.h
-)
-
 if (BUILD_HAL_DRM)
 	list(APPEND HAL_SOURCES
 		${CMAKE_CURRENT_SOURCE_DIR}/gfx_drm.cpp
@@ -99,14 +88,17 @@ set_target_properties(ceeHAL
 	C_STANDARD 17
 	C_STANDARD_REQUIRED ON
 	CXX_STANDARD 20
-	CXX_STANDARD_REQUIRED ON
-	PUBLIC_HEADER "${HAL_PUBLIC_HEADERS}"
-	PRIVATE_HEADER "${HAL_PRIVATE_HEADERS}")
+	CXX_STANDARD_REQUIRED ON)
 
 target_include_directories(ceeHAL PRIVATE ${HAL_PRIVATE_INCLUDEDIRS})
 target_include_directories(ceeHAL PUBLIC ${HAL_PUBLIC_INCLUDEDIRS})
 target_link_directories(ceeHAL PRIVATE ${HAL_LIBRARYDIRS})
 target_link_libraries(ceeHAL PUBLIC ${HAL_LIBRARIES})
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND CEE_USE_ASAN)
+	target_compile_options(ceeHAL PRIVATE -Wall -Wextra -Wno-unused-parameter -fsanitize=address,leak)
+	target_link_options(ceeHAL INTERFACE -fsanitize=address,leak)
+endif()
 
 configure_file(config.h.in "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
 

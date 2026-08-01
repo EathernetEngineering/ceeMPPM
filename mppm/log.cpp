@@ -106,7 +106,7 @@ void Log::RemoveLogger(std::shared_ptr<spdlog::logger> childToRemove)
 			return false;
 		});
 	if (childIt == s_Children.end()) {
-		CEE_CORE_DEBUG("Attempt to remove logger not registered with mppm");
+		CEE_CORE_TRACE("Attempt to remove logger not registered with mppm");
 		/* 
 		 * Don't fail out or even warn here becuase sinks aren't private here, and
 		 * the behaviour may be wanted even if the logger wasn't added with the
@@ -117,7 +117,7 @@ void Log::RemoveLogger(std::shared_ptr<spdlog::logger> childToRemove)
 	// Erase the sinks managed by this from the child
 	auto& childSinks = childToRemove->sinks();
 	auto& sinks = s_Logger->sinks();
-	int n = std::erase_if(childSinks,
+	auto n = std::erase_if(childSinks,
 		[&sinks](const spdlog::sink_ptr& childSink){
 			for (auto it = sinks.begin(); it != sinks.end(); it++) {
 				if (!it->owner_before(childSink) && !childSink.owner_before(*it))
@@ -151,10 +151,9 @@ void Log::SetLogLocation(const std::string& path)
 	m_LogLocation = path;
 }
 
-void Log::RemoveDeadChildren()
+size_t Log::RemoveDeadChildren()
 {
-	auto newEnd = std::erase_if(s_Children,
-		[](const std::weak_ptr<spdlog::logger>& child){
+	return std::erase_if(s_Children, [](const std::weak_ptr<spdlog::logger>& child){
 			return child.expired();
 		});
 }

@@ -16,8 +16,6 @@
 
 cmake_minimum_required(VERSION 4.0)
 
-enable_testing()
-
 if (TARGET gtest_main)
 	message(STATUS "Found Google Test, building tests.")
 elseif (CEE_GOOGLETEST_DIR)
@@ -81,10 +79,23 @@ set(MPPMTest_SOURCES
 	mppm_parse.cpp
 )
 
+set(FONTTest_SOURCES
+	atlas_cache.cpp
+	glyph_cache.cpp
+	font_managment.cpp
+)
+
 add_cee_unittest(
-	TARGET mppm_unit_tests
+	TARGET mppm_utils
 	SRCS ${MPPMTest_SOURCES}
 	LIBS ceeMPPM
 	INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/mppm ${CMAKE_BINARY_DIR}/mppm
+)
+
+add_cee_unittest(
+	TARGET font_lib
+	SRCS ${FONTTest_SOURCES}
+	LIBS ceeGUI
+	INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/gui
 )
 

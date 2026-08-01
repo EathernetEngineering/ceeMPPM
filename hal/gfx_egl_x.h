@@ -39,6 +39,8 @@ namespace hal {
 
 			virtual const char* GetVersionString() const override;
 			virtual const char* GetShadingVersionString() const override;
+			virtual float GetHDPI() const override { return m_HDPI; }
+			virtual float GetVDPI() const override { return m_VDPI; }
 			virtual void SwapBuffers() override;
 
 		protected:
@@ -46,6 +48,8 @@ namespace hal {
 			Window m_Window;
 			int m_Screen;
 			Atom m_WmDeleteAtom;
+
+			float m_HDPI = 0.f, m_VDPI = 0.f;
 
 			EGLDisplay m_EglDisplay;
 			EGLSurface m_EglSurface;

@@ -20,6 +20,7 @@
 #define CEE_HAL_GFX_H_
 
 #include <memory>
+#include <cstdint>
 
 namespace cee {
 namespace hal {
@@ -38,6 +39,8 @@ class GraphicsContext {
 		virtual const char* GetShadingVersionString() const = 0;
 		virtual int GetWidth() const { return m_Width; }
 		virtual int GetHeight() const { return m_Height; }
+		virtual float GetHDPI() const = 0;
+		virtual float GetVDPI() const = 0;
 		virtual void SwapBuffers() = 0;
 
 	public:

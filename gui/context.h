@@ -20,62 +20,123 @@
 #define CEE_GUI_CONTEXT_H_
 
 #include <cee/gui/object.h>
+#include <shaders.h>
+
+#include <cee/font/fonts.h>
+
+#include <cee/hal/gfx.h>
 
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 
+#include <memory>
 #include <string>
 #include <stack>
 #include <unordered_map>
 
 namespace cee {
 namespace gui {
+	constexpr int BATCH_MAX_VERTICES = 1024;
 
 	struct Vertex {
 		glm::vec4 position;
 		Color color;
+		glm::vec2 uv;
 	};
 
 	class Context {
 	public:
-		enum class Shader {
-			Flat
+		enum class GuiShader {
+			Flat,
+			Text
 		};
 
 	public:
 		Context();
 		~Context();
-		void SetViewport(const glm::vec2 &viewport);
+		void SetViewport(const Size &viewport);
 
-		void PushClip(const glm::vec4 &clip);
+		void PushClip(const Rect &clip);
 		void PopClip();
-		void PushTransform(const glm::mat4 &transform);
+		void PushTransform(const Size &transform);
 		void PopTransform();
 
-		void DrawRect(const Rect &rect, const Color &color);
 		void DrawTriangle(const Point &a, const Point &b, const Point &c, const Color &color);
+		void DrawRect(const Rect &rect, const Color &color);
 		void DrawLine(const Point &p1, const Point &p2, float width, const Color &color);
+		void DrawGlyph(const Point &origin, const Color& color, const font::Glyph &glyph);
+		void DrawText(const std::string &text, const Point &position, const Color &color);
 		void Flush();
 
-		void UseShader(Shader shader);
-		void SetUniform(const std::string &name, const glm::mat4 &value);
+		void UseShader(GuiShader shader);
+		void SetUniform(GuiShader shader, const std::string &name, const glm::mat4 &value);
 
 		const glm::mat4& GetProjection() const { return m_Projection; }
+		font::Font *GetDefaultFont() const { return m_Fonts[0].get(); };
+
+	private:
+		struct TriangleBatch {
+			std::array<Vertex, BATCH_MAX_VERTICES> vertices;
+			std::array<int16_t, BATCH_MAX_VERTICES> indices;
+			int vertexCount = 0;
+			int indexCount = 0;
+		};
+
+		struct RectBatch {
+			std::array<Vertex, BATCH_MAX_VERTICES> vertices;
+			std::array<int16_t, (BATCH_MAX_VERTICES*6)/4> indices;
+			int vertexCount = 0;
+			int indexCount = 0;
+		};
+
+		struct LineBatch {
+			std::array<Vertex, BATCH_MAX_VERTICES> vertices;
+			std::array<int16_t, (BATCH_MAX_VERTICES*6)/4> indices;
+			int vertexCount = 0;
+			int indexCount = 0;
+		};
+
+		struct TextBatch {
+			font::AtlasPageID atlasId;
+			std::array<Vertex, BATCH_MAX_VERTICES> vertices;
+			std::array<int16_t, (BATCH_MAX_VERTICES*6)/4> indices;
+			int vertexCount = 0;
+			int indexCount = 0;
+		};
+		struct AtlasTexture {
+			int atlasId;
+			int atlasVersion;
+			GLuint name;
+		};
 
 	private:
 		GLint GetUniformLocation(const std::string& name);
+		void FlushTriangles();
+		void FlushRects();
+		void FlushLines();
+		void FlushText();
+		void FlushText(TextBatch& batch);
+		AtlasTexture CreateAtlasTexture(font::AtlasPageID id);
+		void InvalidateAtlasTexture(AtlasTexture& tex);
 
 	private:
-		uint32_t m_QuadFlatShader;
+		std::unique_ptr<Shader> m_QuadFlatShader;
+		std::unique_ptr<Shader> m_TextShader;
+		std::unique_ptr<font::FontManager> m_FontManager;
+		std::vector<std::shared_ptr<font::Font>> m_Fonts;
+		uint32_t m_FontTexture;
 		uint32_t m_VBO, m_EBO;
-		uint32_t m_VertexCount, m_IndexCount;
-		glm::vec2 m_Viewport;
+		GuiShader m_CurrentShader;
+		Size m_Viewport;
 		glm::mat4 m_Projection;
 		std::unordered_map<std::string, GLint> m_UniformLocations;
-		std::array<Vertex, 1024> m_VertexData;
-		std::array<uint16_t, 1024> m_IndexData;
-		std::stack<glm::mat4> m_Transform;
-		std::stack<glm::vec4> m_Clip;
+		TriangleBatch m_Triangles;
+		RectBatch m_Rects;
+		LineBatch m_Lines;
+		std::vector<TextBatch> m_Text;
+		std::vector<AtlasTexture> m_TextTextures;
+		std::stack<Size> m_TransformStack;
+		std::stack<Rect> m_ClipStack;
 	};
 }
 }

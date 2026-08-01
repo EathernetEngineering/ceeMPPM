@@ -40,7 +40,7 @@ public:
 	static void SetLogLocation(const std::string& path);
 
 private:
-	static void RemoveDeadChildren();
+	static size_t RemoveDeadChildren();
 
 private:
 	static std::shared_ptr<spdlog::logger> s_Logger;

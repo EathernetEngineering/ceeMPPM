@@ -60,29 +60,116 @@ namespace gui {
 		}
 	};
 
-	struct Translation {
-		float x, y;
-	};
+	// struct Translation {
+	// 	float x, y;
+	// };
 
 	struct Rect {
 		float x, y, w, h;
+
+		constexpr Rect() : x(0.f), y(0.f), w(0.f), h(0.f) {}
+		constexpr Rect(float x, float y, float width, float height)
+		 : x(x), y(y), w(width), h(height)
+		{}
+		constexpr Rect(const Rect& other)
+		 : x(other.x), y(other.y), w(other.w), h(other.h)
+		{}
+		constexpr Rect(Rect&& other) noexcept
+		 : x(other.x), y(other.y), w(other.w), h(other.h)
+		{}
+		constexpr Rect& operator=(const Rect& other) {
+			x = other.x;
+			y = other.y;
+			w = other.w;
+			h = other.h;
+			return *this;
+		}
+		constexpr Rect& operator=(Rect&& other) noexcept {
+			x = other.x;
+			y = other.y;
+			w = other.w;
+			h = other.h;
+			return *this;
+		}
+		~Rect() = default;
 	};
 
 	struct Point {
 		float x, y;
+
+		constexpr Point() : x(0.f), y(0.f) {}
+		constexpr Point(float x, float y) : x(x), y(y) {}
+		constexpr Point(const Point& other) : x(other.x), y(other.y) {}
+		constexpr Point(Point&& other) noexcept : x(other.x), y(other.y) {}
+		constexpr Point& operator=(const Point& other) {
+			x = other.x;
+			y = other.y;
+			return *this;
+		}
+		constexpr Point& operator=(Point&& other) noexcept {
+			x = other.x;
+			y = other.y;
+			return *this;
+		}
+		~Point() = default;
 	};
 
 	struct Size {
-		float w, h;
+		union {
+			struct { float w, h; };
+			struct { float x, y; };
+		};
+
+		constexpr Size() : w(0.f), h(0.f) {}
+		constexpr Size(float width, float height) : w(width), h(height) {}
+		constexpr Size(const Size& other) : w(other.w), h(other.h) {}
+		constexpr Size(Size&& other) noexcept : w(other.w), h(other.h) {}
+		constexpr Size& operator=(const Size& other) {
+			w = other.w;
+			h = other.h;
+			return *this;
+		}
+		constexpr Size& operator=(Size&& other) noexcept {
+			w = other.w;
+			h = other.h;
+			return *this;
+		}
+		~Size() = default;
+	};
+
+	struct Color {
+		float r, g, b, a;
+
+		constexpr Color() : r(0.f), g(0.f), b(0.f), a(0.f) {}
+		constexpr Color(float red, float green, float blue, float alpha = 1.f)
+		 : r(red), g(green), b(blue), a(alpha)
+		{}
+		constexpr Color(const Color& other)
+		 : r(other.r), g(other.g), b(other.b), a(other.a)
+		{}
+		constexpr Color(Color&& other) noexcept
+		 : r(other.r), g(other.g), b(other.b), a(other.a)
+		{}
+		constexpr Color& operator=(const Color& other) {
+			r = other.r;
+			g = other.g;
+			b = other.b;
+			a = other.a;
+			return *this;
+		}
+		constexpr Color& operator=(Color&& other) noexcept {
+			r = other.r;
+			g = other.g;
+			b = other.b;
+			a = other.a;
+			return *this;
+		}
+		~Color() = default;
 	};
 
 	struct Constraints {
 		float minWidth, minHeight;
 		float maxWidth, maxHeight;
-	};
-
-	struct Color {
-		float r, g, b, a;
 	};
 
 	constexpr inline Color HexToColor(uint32_t hex) {
@@ -150,10 +237,10 @@ namespace gui {
 
 		virtual bool HasClip() const { return false; }
 		virtual bool HasTransform() const { return false; }
-		virtual glm::mat4 Transform() const { return glm::identity<glm::mat4>(); }
+		virtual Size Transform() const { return { 0.f, 0.f }; }
 		virtual Rect Clip() const { return { 0.0f, 0.0f, 0.0f, 0.0f }; }
 
-		virtual Size OnMeasure(const Constraints &c) { return { 0.f, 0.f }; }
+		virtual Size OnMeasure(const Constraints &c) { return { 0.f, 0.f }; (void)c; }
 		virtual void OnArrange() {}
 		virtual void OnRender() {}
 

@@ -53,7 +53,7 @@ private:
 
 private:
 	bool m_Running;
-	std::unique_ptr<cee::hal::GraphicsContext> m_HalGfx;
+	std::unique_ptr<hal::GraphicsContext> m_HalGfx;
 
 private:
 	static MPPM *s_Instance;

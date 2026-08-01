@@ -17,13 +17,19 @@
  */
 
 #include <cee/gui/object.h>
+#include <log.h>
 #include <context.h>
 
 #include <algorithm>
+#include <stdexcept>
 
 namespace cee {
 namespace gui {
 	void Object::AddChild(Object *child) {
+		if (this->ctx == nullptr) {
+			CEE_ERROR("Cannot add child to object without parent");
+			throw std::logic_error("Cannot add child to object without parent");
+		}
 		m_Children.push_back(child);
 		child->ctx = this->ctx;
 	}

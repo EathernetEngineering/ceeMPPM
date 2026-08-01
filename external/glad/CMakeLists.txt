@@ -16,32 +16,13 @@
 
 cmake_minimum_required(VERSION 4.0)
 
-if(BUILD_GL AND BUILD_GLES)
-	message(SEND_ERROR "Cannot build both OpenGL ES and OpenGL as they have conflicting symbols\n"
-	                   "\tThis will cause link errors when compiled into an application")
-endif()
-if (NOT BUILD_GL AND NOT BUILD_GLES)
-	message(SEND_ERROR "No graphics backend selected, at least one of BUILD_GL or BUILD_GLES must be enabled")
-endif()
-
-if (BUILD_EGL)
-	list(APPEND glad_SOURCES src/egl.c)
-	list(APPEND glad_PUBLIC_HEADERS include/glad/egl.h include/EGL/eglplatform.h)
-	list(APPEND glad_LIBRARIES EGL)
-endif()
-if (BUILD_GLES)
-	list(APPEND glad_SOURCES src/gles2.c src/gles1.c)
-	list(APPEND glad_PUBLIC_HEADERS include/glad/gles1.h include/glad/gles2.h)
-	list(APPEND glad_LIBRARIES GLESv2)
-endif()
-if (BUILD_GL)
-	list(APPEND glad_SOURCES src/gl.c src/glx.c)
-	list(APPEND glad_PUBLIC_HEADERS include/glad/gl.h include/glad/glx.h)
-	list(APPEND glad_LIBRARIES GL)
-endif()
+list(APPEND glad_SOURCES src/egl.c)
+list(APPEND glad_PUBLIC_HEADERS include/glad/egl.h include/EGL/eglplatform.h)
+list(APPEND glad_LIBRARIES EGL)
+list(APPEND glad_SOURCES src/gles2.c src/gles1.c)
+list(APPEND glad_PUBLIC_HEADERS include/glad/gles1.h include/glad/gles2.h)
+list(APPEND glad_LIBRARIES GLESv2)
 list(APPEND glad_PUBLIC_HEADERS include/KHR/khrplatform.h)
-
-
 
 add_library(glad ${glad_SOURCES})
 

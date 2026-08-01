@@ -29,8 +29,9 @@
 #include <glad/egl.h>
 #include <glad/gles2.h>
 
-#include <fcntl.h>
 #include <cstring>
+#include <fcntl.h>
+#include <unistd.h>
 
 #define MAX_DRM_DEVICES 64
 
@@ -169,16 +170,16 @@ namespace hal {
 				m_DRMDisplay.connectorMode);
 
 		if (result) {
-			CEE_DEBUG("drmModeSetCrtc: {}", strerror(errno));
+			CEE_TRACE("drmModeSetCrtc: {}", strerror(errno));
 			result = drmIsMaster(m_DRMDisplay.fd);
 			if (!result) {
-				CEE_DEBUG("Attempting to set drm master...");
+				CEE_TRACE("Attempting to set drm master...");
 				result = drmSetMaster(m_DRMDisplay.fd);
 				if (result < 0 || !drmIsMaster(m_DRMDisplay.fd)) {
 					CEE_ERROR("... Fail");
 					throw std::runtime_error("Failed to set drm master");
 				}
-				CEE_DEBUG("... Success");
+				CEE_TRACE("... Success");
 
 				result = drmModeSetCrtc(m_DRMDisplay.fd,
 									 m_DRMDisplay.crtcId,
@@ -188,10 +189,10 @@ namespace hal {
 									 1,
 									 m_DRMDisplay.connectorMode);
 				if (result < 0) {
-					CEE_DEBUG("drmModeSetCrtc: {}", strerror(errno));
+					CEE_TRACE("drmModeSetCrtc: {}", strerror(errno));
 					throw std::runtime_error("Unable to set crtc");
 				}
-				CEE_DEBUG("Crtc set");
+				CEE_TRACE("Crtc set");
 			} else {
 				CEE_ERROR("Unable to set crtc");
 				throw std::runtime_error("Unable to set crtc");
@@ -379,6 +380,8 @@ namespace hal {
 
 		m_DRMDisplay.width = m_DRMDisplay.connectorMode->hdisplay;
 		m_DRMDisplay.height = m_DRMDisplay.connectorMode->vdisplay;
+		m_DRMDisplay.m_HDPI = m_DRMDisplay.connector->mmWidth / (m_DRMDisplay.width / 25.4f);
+		m_DRMDisplay.m_VDPI = m_DRMDisplay.connector->mmHeight / (m_DRMDisplay.height / 25.4f);
 
 		for (int i = 0; i < m_DRMDisplay.resources->count_encoders; i++) {
 			m_DRMDisplay.encoder = drmModeGetEncoder(m_DRMDisplay.fd, m_DRMDisplay.resources->encoders[i]);
@@ -416,8 +419,8 @@ namespace hal {
 		int waitingForFlip = 1, result = -1;
 		fd_set fds;
 		if ((result = drmModePageFlip(m_DRMDisplay.fd, m_DRMDisplay.crtcId, m_FB.fboId, DRM_MODE_PAGE_FLIP_EVENT, &waitingForFlip))) {
-			CEE_DEBUG("drmModePageFlip: {}", strerror(errno));
-			CEE_DEBUG("Drm page flipped failed, releasing buffer");
+			CEE_TRACE("drmModePageFlip: {}", strerror(errno));
+			CEE_TRACE("Drm page flipped failed, releasing buffer");
 
 			drmModeRmFB(m_DRMDisplay.fd, m_FB.fboId);
 			GBMReleaseBuffer();
@@ -482,7 +485,7 @@ namespace hal {
 		}
 		if (modifiers[0] && (modifiers[0] != DRM_FORMAT_MOD_INVALID)) { 
 			flags = DRM_MODE_FB_MODIFIERS;
-				CEE_DEBUG("drmModeAddFB2WithModifiers with modifiers: %llu", modifiers[0]);
+				CEE_TRACE("drmModeAddFB2WithModifiers with modifiers: %llu", modifiers[0]);
 		}
 
 		result = drmModeAddFB2WithModifiers(fd,
@@ -495,7 +498,7 @@ namespace hal {
 
 		if (result)  {
 			if (flags)
-				CEE_DEBUG("drmModeAddFB2WithModifiers failed: %s", strerror(errno));
+				CEE_TRACE("drmModeAddFB2WithModifiers failed: %s", strerror(errno));
 
 			handles[0] = gbm_bo_get_handle(m_FB.bbo).u32;
 			strides[0] = gbm_bo_get_stride(m_FB.bbo);
@@ -512,9 +515,9 @@ namespace hal {
 
 			if (result) {
 				CEE_ERROR("Fallback failed: drmModeAddFB2 ({}): {}", errno, strerror(errno));
-				CEE_DEBUG("fd = {}, width = {}, height = {}, format = {}, handle = {}",
+				CEE_TRACE("fd = {}, width = {}, height = {}, format = {}, handle = {}",
 						fd, m_FB.width, m_FB.height, format, handles[0]);
-				CEE_DEBUG("stride = {}, offset = {}, drmBoId = {}, flags = 0", strides[0], offsets[0], m_FB.fboId);
+				CEE_TRACE("stride = {}, offset = {}, drmBoId = {}, flags = 0", strides[0], offsets[0], m_FB.fboId);
 				delete fbInfo;
 				throw std::runtime_error("Failed to create framebuffer");
 			}

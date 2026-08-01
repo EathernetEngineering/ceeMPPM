@@ -68,6 +68,21 @@ namespace hal {
 		XMapWindow(m_Display, m_Window);
 		XStoreName(m_Display, m_Window, "ceeHAL X11");
 
+		XWindowAttributes winAttribs;
+		XGetWindowAttributes(m_Display, m_Window, &winAttribs);
+		m_Width = winAttribs.width;
+		m_Height = winAttribs.height;
+
+		{
+			float displayWidthPx = DisplayWidth(m_Display, m_Screen);
+			float displayHeightPx = DisplayHeight(m_Display, m_Screen);
+			float displayWidthMM = DisplayWidthMM(m_Display, m_Screen);
+			float displayHeightMM = DisplayHeightMM(m_Display, m_Screen);
+
+			m_HDPI = displayWidthPx / (displayWidthMM / 25.4f);
+			m_VDPI = displayHeightPx / (displayHeightMM / 25.4f);
+		}
+
 		m_EglDisplay = eglGetDisplay(reinterpret_cast<EGLNativeDisplayType>(m_Display));
 		if (m_EglDisplay == EGL_NO_DISPLAY) {
 			CEE_ERROR("Unable to get EGLDisplay from X");

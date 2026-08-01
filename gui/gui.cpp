@@ -46,11 +46,11 @@ namespace gui {
 			return m_Child;
 		}
 
-		void SetClip(const glm::vec2 &clip) { m_Clip = { 0.f, 0.f, clip.x, clip.y }; }
+		void SetClip(const Size &clip) { m_Clip = { 0.f, 0.f, clip.x, clip.y }; }
 
 	protected:
 		virtual bool HasClip() const override { return true; }
-		virtual glm::mat4 Transform() const override { return glm::identity<glm::mat4>(); }
+		virtual Size Transform() const override { return { 0.f, 0.f }; }
 		virtual bool HasTransform() const override { return true; }
 		// TODO get actual screen size
 		virtual Rect Clip() const override { return m_Clip; }
@@ -95,18 +95,18 @@ namespace gui {
 		g_Root->SetChild(node);
 	}
 
-	int BeginFrame(const glm::vec2 &viewport) {
+	int BeginFrame(const Size &viewport) {
 		g_Root->SetClip(viewport);
 		g_Ctx->SetViewport(viewport);
 		return 0;
 	}
 
-	int Render(float viewportWidth, float viewportHeight) {
+	int Render(const Size &viewport) {
 		PROFILE_SCOPE("GUI frame");
-		Rect viewportRect = { 0.f, 0.f, viewportWidth, viewportHeight };
+		Rect viewportRect = { 0.f, 0.f, viewport.w, viewport.h };
 		{
 			PROFILE_SCOPE("GUI Measure");
-			g_Root->_Measure({ 0.f, 0.f, viewportWidth, viewportHeight });
+			g_Root->_Measure({ 0.f, 0.f, viewport.w, viewport.h });
 		}
 		{
 			PROFILE_SCOPE("GUI Arrange");
@@ -114,8 +114,8 @@ namespace gui {
 		}
 		{
 			PROFILE_SCOPE("GUI render context prepare");
-			g_Ctx->UseShader(Context::Shader::Flat);
-			g_Ctx->SetUniform("uProj", g_Ctx->GetProjection());
+			g_Ctx->SetUniform(Context::GuiShader::Flat, "uProj", g_Ctx->GetProjection());
+			g_Ctx->SetUniform(Context::GuiShader::Text, "uProj", g_Ctx->GetProjection());
 		}
 		{
 			PROFILE_SCOPE("GUI Draw");

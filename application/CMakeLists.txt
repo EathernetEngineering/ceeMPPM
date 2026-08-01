@@ -37,3 +37,7 @@ target_include_directories(mppm PRIVATE ${MPPMA_PRIVATE_INCLUDEDIRS})
 target_link_directories(mppm PRIVATE ${MPPMA_LIBRARYDIRS})
 target_link_libraries(mppm PRIVATE ${MPPMA_LIBRARIES})
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND CEE_USE_ASAN)
+	target_compile_options(mppm PRIVATE -Wall -Wextra -Wno-unused-parameter -fsanitize=address,leak)
+endif()
+

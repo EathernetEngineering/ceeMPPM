@@ -19,12 +19,5 @@
 #ifndef CEE_GUI_CONFIG_H_
 #define CEE_GUI_CONFIG_H_
 
-#cmakedefine01 BUILD_GLES
-#cmakedefine01 BUILD_GL
-
-#if (BUILD_GLES && BUILD_GL)
-#error "Cannot build both OpenGL and OpenGL ES at the same time"
-#endif
-
 #endif
 

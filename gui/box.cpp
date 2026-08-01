@@ -24,14 +24,16 @@
 
 namespace cee {
 namespace gui {
-	std::vector<Size> Box::MeasureChildren(const Constraints &c) {
-		return {};
-	}
-
 	Size Box::OnMeasure(const Constraints &c) {
 		if (m_ExplicitSize) {
+			Constraints childConstraints = {
+				.minWidth = c.minWidth,
+				.minHeight = c.minHeight,
+				.maxWidth = std::min(c.maxWidth, m_Desired.w),
+				.maxHeight = std::min(c.maxHeight, m_Desired.h)
+			};
 			for (auto child : m_Children) {
-				child->_Measure(c);
+				child->_Measure(childConstraints);
 			}
 			return m_Desired;
 		}
@@ -53,7 +55,7 @@ namespace gui {
 
 	void Box::OnArrange() {
 		Rect childRect{};
-		Translation translation = { 0.f, 0.f };
+		Size translation = { 0.f, 0.f };
 		for (auto child : m_Children) {
 			if (m_StackDirection == StackDirection::Horizontal) {
 				childRect.x = translation.x;
@@ -73,6 +75,7 @@ namespace gui {
 	}
 	
 	void Box::OnRender() {
+		ctx->UseShader(Context::GuiShader::Flat);
 		ctx->DrawRect(m_AbsoluteRect, m_Color);
 	}
 }
