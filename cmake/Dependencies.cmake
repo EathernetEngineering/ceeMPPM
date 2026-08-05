@@ -163,7 +163,7 @@ if (CEE_USE_TRACY AND NOT TARGET Tracy::TracyClient)
 				"Install Tracy or provide source with -DCEE_TRACY_SOURCE_DIR=/path/to/Tracy")
 		endif ()
 	endif ()
-endif (USE_TRACY AND NOT TARGET Tracy::TracyClient)
+endif (CEE_USE_TRACY AND NOT TARGET Tracy::TracyClient)
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/glad"
 	"${CMAKE_BINARY_DIR}/_deps/glad"

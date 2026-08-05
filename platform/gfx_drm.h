@@ -65,7 +65,7 @@ namespace platform {
 				drmEventContext eventContext;
 
 				int width, height;
-				float m_HDPI = 0.f, m_VDPI = 0.f;
+				float m_HDPI, m_VDPI;
 			} m_DRMDisplay;
 
 			struct GBMFramebuffer {

@@ -65,13 +65,12 @@ namespace platform {
 
 	void DRMGraphicsContext::Init()
 	{
-		EGLBoolean result = EGL_FALSE;
-		GLenum ec;
+		EGLint result = EGL_FALSE;
 
 		ChooseDRMDevice();
 		ChooseConnector();
 		ChooseConnectorMode();
-		error(logger(), "Chose connector 0x{:X}, {}x{}@{}Hz",
+		debug(logger(), "Chose connector 0x{:X}, {}x{}@{}Hz",
 			m_DRMDisplay.connectorId,
 			m_DRMDisplay.connectorMode->hdisplay,
 			m_DRMDisplay.connectorMode->vdisplay,
@@ -256,7 +255,6 @@ namespace platform {
 
 		for (int i = 0; i < countDevices; i++) {
 			drmDevicePtr device = devices[i];
-			int ret;
 
 			if (!(device->available_nodes & (1 << DRM_NODE_PRIMARY))) {
 				continue;
@@ -291,8 +289,8 @@ namespace platform {
 
 	void DRMGraphicsContext::ChooseConnector()
 	{
-		if (m_DRMDisplay.connectorId >= 0) {
-			if (m_DRMDisplay.connectorId >= m_DRMDisplay.resources->count_connectors) {
+		if (m_DRMDisplay.connectorId) {
+			if (m_DRMDisplay.connectorId >= static_cast<uint32_t>(m_DRMDisplay.resources->count_connectors)) {
 				error(logger(), "Provided connector ID invlalid. Given {}. connector count: {}",
 						m_DRMDisplay.connectorId, m_DRMDisplay.resources->count_connectors);
 				throw core::InternalError("Provided connector ID invlalid");
@@ -479,7 +477,7 @@ namespace platform {
 		height = gbm_bo_get_height(m_FB.bbo);
 		format = gbm_bo_get_format(m_FB.bbo);
 		modifiers[0] = gbm_bo_get_modifier(m_FB.bbo);
-		const int planeCount = gbm_bo_get_plane_count(m_FB.bbo);
+		const uint32_t planeCount = gbm_bo_get_plane_count(m_FB.bbo);
 		for (uint32_t i = 0; i < planeCount; i++) {
 			strides[i] = gbm_bo_get_stride_for_plane(m_FB.bbo, i);
 			offsets[i] = gbm_bo_get_offset(m_FB.bbo, i);
@@ -516,20 +514,22 @@ namespace platform {
 							  strides, offsets,
 							  &m_FB.fboId, 0);
 
-			if (result) {
-				error(logger(), "Fallback failed: drmModeAddFB2 ({}): {}", errno, strerror(errno));
-				trace(logger(), "\tfd = {}, width = {}, height = {}, format = {}, handle = {}",
-						fd, m_FB.width, m_FB.height, format, handles[0]);
-				trace(logger(), "\tstride = {}, offset = {}, drmBoId = {}, flags = 0",
-						strides[0], offsets[0], m_FB.fboId);
-				delete fbInfo;
-				throw core::InternalError("Failed to create framebuffer");
-			}
-			fbInfo->bo = m_FB.bbo;
-			fbInfo->id = m_FB.fboId;
-
-			gbm_bo_set_user_data(m_FB.bbo, fbInfo, destroyUserDataCallback);
 		}
+
+		if (result) {
+			error(logger(), "Fallback failed: drmModeAddFB2 ({}): {}", errno, strerror(errno));
+			trace(logger(), "\tfd = {}, width = {}, height = {}, format = {}, handle = {}",
+					fd, m_FB.width, m_FB.height, format, handles[0]);
+			trace(logger(), "\tstride = {}, offset = {}, drmBoId = {}, flags = 0",
+					strides[0], offsets[0], m_FB.fboId);
+			free(fbInfo);
+			throw core::InternalError("Failed to create framebuffer");
+		}
+
+		fbInfo->bo = m_FB.bbo;
+		fbInfo->id = m_FB.fboId;
+
+		gbm_bo_set_user_data(m_FB.bbo, fbInfo, destroyUserDataCallback);
 	}
 
 	void DRMGraphicsContext::CreateGBMSurface()
@@ -609,7 +609,7 @@ namespace platform {
 			if (!eglGetConfigAttrib(m_EglDisplay, configs[i], EGL_NATIVE_VISUAL_ID, &id))
 				continue;
 
-			if (id == m_FB.format)
+			if (id == static_cast<EGLint>(m_FB.format))
 				return i;
 		}
 		return -1;

@@ -189,12 +189,12 @@ int Input::GetKeyboards() {
 				break;
 			}
 			if (ret == -ENOTSUP) {
-				//CEE_CORE_DEBUG("Couldn't open /dev/input/{0}: {1}. Skipping...", ents[i]->d_name, strerror(-ret));
+				CEE_CORE_TRACE("Couldn't open /dev/input/{0}: {1}. Skipping...", ents[i]->d_name, strerror(-ret));
 			}
 			continue;
 		}
 		if (kbd == nullptr) {
-			CEE_CORE_ERROR("kbd is nullptr");
+			CEE_CORE_WARN("kbd is nullptr");
 			continue;
 		}
 		kbd->next = s_Keyboards;
@@ -339,7 +339,6 @@ int Input::ReadKeyboard(Keyboard *keyboard) {
 void Input::ProcessEvent(Keyboard *keyboard, uint16_t type, uint16_t code, int32_t value) {
 	xkb_keycode_t keycode;
 	xkb_keymap *keymap;
-	xkb_state_component changed;
 
 	if (type != EV_KEY) {
 		return;
@@ -355,15 +354,14 @@ void Input::ProcessEvent(Keyboard *keyboard, uint16_t type, uint16_t code, int32
 	}
 
 	if (value == KEY_STATE_RELEASE) {
-		changed = xkb_state_update_key(keyboard->state, keycode, XKB_KEY_UP);
+		xkb_state_update_key(keyboard->state, keycode, XKB_KEY_UP);
 		KeyUpEvent e(keycode);
 		s_EventCallback(e);
 	} else {
-		changed = xkb_state_update_key(keyboard->state, keycode, XKB_KEY_DOWN);
+		xkb_state_update_key(keyboard->state, keycode, XKB_KEY_DOWN);
 		KeyDownEvent e(keycode);
 		s_EventCallback(e);
 	}
-	(void)changed; /* Unused variable */
 }
 
 void Input::DefaultCallback(Event &e) {
