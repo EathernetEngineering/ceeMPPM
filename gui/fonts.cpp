@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeFont
  * Copyright (C) 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -24,8 +24,9 @@
 #include FT_FREETYPE_H
 #include FT_SIZES_H
 
+#include <fmt/format.h>
+
 #include <filesystem>
-#include <format>
 #include <mutex>
 #include <utility>
 
@@ -56,7 +57,7 @@ namespace font {
 		GlyphKey CreateGlyphKey(FT_Face face, FontID id, uint32_t codepoint) {
 			int idx = FT_Get_Char_Index(face, codepoint);
 			if (idx == 0 && codepoint != 0xFFFD) {
-				throw GlyphNotFound(std::format("CreateGlyphKey(): Codepoint U+{:X} not found in font {}", codepoint, id));
+				throw GlyphNotFound(fmt::format("CreateGlyphKey(): Codepoint U+{:X} not found in font {}", codepoint, id));
 			}
 			return GlyphKey {
 				.fontId = id,
@@ -133,7 +134,7 @@ namespace font {
 	{
 		int error = FT_Init_FreeType(&_Lib);
 		if (error)
-			throw InternalError(std::format("FontManager(): Failed to initialize freetype ({})", error));
+			throw core::InternalError(fmt::format("FontManager(): Failed to initialize freetype ({})", error));
 	};
 
 	FontManager::Impl::~Impl() {
@@ -148,11 +149,11 @@ namespace font {
 
 	Font::Impl::Impl(FT_Library lib, const char *file) {
 		if (!std::filesystem::exists(file))
-			throw InvalidFontFile(std::format("CreateFont(): File \"{}\" does not exist", file));
+			throw InvalidFontFile(fmt::format("CreateFont(): File \"{}\" does not exist", file));
 
 		int error = FT_New_Face(lib, file, 0, &_Face);
 		if (error)
-			throw InternalError(std::format("CreateFont(): Failed to initialize font {} ({})", file, error));
+			throw core::InternalError(fmt::format("CreateFont(): Failed to initialize font {} ({})", file, error));
 	}
 
 	Font::Impl::~Impl() {
@@ -164,7 +165,7 @@ namespace font {
 		std::lock_guard lock(_Mutex);
 		const FontInstance *inst = GetInstanceForSize(sizePt);
 		if (!inst)
-			throw InvalidParameter("GetAscent(): Cannot get metrics for font with size that has not been loaded");
+			throw core::InvalidParameter("GetAscent(): Cannot get metrics for font with size that has not been loaded");
 		return inst->GetAscent();
 	}
 
@@ -172,7 +173,7 @@ namespace font {
 		std::lock_guard lock(_Mutex);
 		const FontInstance *inst = GetInstanceForSize(sizePt);
 		if (!inst)
-			throw InvalidParameter("GetDescent(): Cannot get metrics for font with size that has not been loaded");
+			throw core::InvalidParameter("GetDescent(): Cannot get metrics for font with size that has not been loaded");
 		return inst->GetDescent();
 	}
 
@@ -180,7 +181,7 @@ namespace font {
 		std::lock_guard lock(_Mutex);
 		const FontInstance *inst = GetInstanceForSize(sizePt);
 		if (!inst)
-			throw InvalidParameter("GetLineHeight(): Cannot get metrics for font with size that has not been loaded");
+			throw core::InvalidParameter("GetLineHeight(): Cannot get metrics for font with size that has not been loaded");
 		return inst->GetLineHeight();
 	}
 
@@ -188,7 +189,7 @@ namespace font {
 		std::lock_guard lock(_Mutex);
 		const FontInstance *inst = GetInstanceForSize(sizePt);
 		if (!inst)
-			throw InvalidParameter("GetLineGap(): Cannot get metrics for font with size that has not been loaded");
+			throw core::InvalidParameter("GetLineGap(): Cannot get metrics for font with size that has not been loaded");
 		return inst->GetLineGap();
 	}
 
@@ -209,7 +210,7 @@ namespace font {
 			PrepareForSize(sizePt);
 			inst = GetInstanceForSize(sizePt);
 			if (inst == nullptr)
-				throw InternalError("EnsureGlyph(): Failed to create font instance");
+				throw core::InternalError("EnsureGlyph(): Failed to create font instance");
 		}
 		GlyphKey k = {
 			.fontId = id,
@@ -230,13 +231,13 @@ namespace font {
 		};
 		const Glyph *ptr = GlyphCache::FindGlyph(key);
 		if (ptr == nullptr)
-			throw InvalidParameter(std::format("GetGlyph(): Codepoint U+{:X} not loaded in font {}", codepoint, id));
+			throw core::InvalidParameter(fmt::format("GetGlyph(): Codepoint U+{:X} not loaded in font {}", codepoint, id));
 		return *ptr;
 	}
 
 	void Font::Impl::PrepareForSize(int sizePt) {
 		if (GetInstanceForSize(sizePt) != nullptr) {
-			throw InvalidParameter(std::format("Instance for font size {} already exists", sizePt));
+			throw core::InvalidParameter(fmt::format("Instance for font size {} already exists", sizePt));
 		}
 		_Instances.emplace_back(_Face, sizePt);
 	}
@@ -247,13 +248,13 @@ namespace font {
 		int dpi = FontManager::Get()->GetDPI();
 		int error = FT_New_Size(face, &m_Size);
 		if (error != 0)
-			throw InternalError("FontInstance(): Failed to create size object");
+			throw core::InternalError("FontInstance(): Failed to create size object");
 		error = FT_Activate_Size(m_Size);
 		if (error != 0)
-			throw InternalError("FontInstance(): Failed to switch active font size");
+			throw core::InternalError("FontInstance(): Failed to switch active font size");
 		error = FT_Set_Char_Size(face, 0, sizePt * 64, dpi, dpi);
 		if (error != 0)
-			throw InvalidParameter("FontInstance(): Failed to set font size");
+			throw core::InvalidParameter("FontInstance(): Failed to set font size");
 	}
 
 	FontInstance::FontInstance(FontInstance &&other) {
@@ -272,11 +273,11 @@ namespace font {
 
 		int error = FT_Activate_Size(m_Size);
 		if (error != 0)
-			throw InternalError("LoadGlyph(): Failed to switch active font size");
+			throw core::InternalError("LoadGlyph(): Failed to switch active font size");
 
 		error = FT_Load_Glyph(face, k.faceGlyphIndex, FT_LOAD_RENDER);
 		if (error != 0)
-			throw InternalError("LoadGlyph(): Failed to rasterize glyph");
+			throw core::InternalError("LoadGlyph(): Failed to rasterize glyph");
 
 		GlyphBitmap bmp = {
 			.width = face->glyph->bitmap.width,
@@ -301,7 +302,7 @@ namespace font {
 	void FontInstance::DeleteGlyph(const GlyphKey &k, uint32_t codepoint) {
 		const Glyph *cacheLookup = GlyphCache::FindGlyph(k);
 		if (!cacheLookup)
-			throw InvalidParameter(std::format("DeleteGlyph(): Codepoint U+{:X} not loaded in font {}",
+			throw core::InvalidParameter(fmt::format("DeleteGlyph(): Codepoint U+{:X} not loaded in font {}",
 						codepoint, k.fontId));
 		GlyphCache::ReleaseGlyph(k);
 	}
@@ -343,7 +344,7 @@ namespace font {
 	const Glyph &Font::GetGlyph(uint32_t codepoint, int sizePt) const {
 		const auto &glyph =  impl->GetGlyph(m_Id, codepoint, sizePt);
 		if (glyph.codepoint == 0 || glyph.codepoint == 0xFFFD)
-			throw GlyphNotFound(std::format("GetGlyph(): Codepoint U+{:X} not found in font {}", codepoint, m_Id));
+			throw GlyphNotFound(fmt::format("GetGlyph(): Codepoint U+{:X} not found in font {}", codepoint, m_Id));
 		return glyph;
 	}
 
@@ -351,7 +352,7 @@ namespace font {
 		impl->EnsureGlyph(m_Id, codepoint, sizePt);
 		const auto &glyph = impl->GetGlyph(m_Id, codepoint, sizePt);
 		if (glyph.codepoint == 0 || glyph.codepoint == 0xFFFD)
-			throw GlyphNotFound(std::format("GetGlyph(): Codepoint U+{:X} not found in font {}", codepoint, m_Id));
+			throw GlyphNotFound(fmt::format("GetGlyph(): Codepoint U+{:X} not found in font {}", codepoint, m_Id));
 		return glyph;
 	}
 

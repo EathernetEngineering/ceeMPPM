@@ -1,4 +1,4 @@
-# CeeHealth
+# ceeMPPM
 # Copyright (C) 2025 Chloe Eather
 # 
 # This program is free software: you can redistribute it and/or modify it under
@@ -18,43 +18,28 @@ cmake_minimum_required(VERSION 4.0)
 
 project(MultiPPM LANGUAGES C CXX VERSION 1.0.0)
 
-find_package(PkgConfig REQUIRED)
-
 option(CEE_BUILD_TESTS "Build tests" OFF)
 option(CEE_USE_ASAN "Bulild with address sanitizer" OFF)
-option(USE_TRACY "Bulild with Tracy profiler" OFF)
+option(CEE_USE_TRACY "Bulild with profiling" OFF)
+option(CEE_BUILD_TRACY_PROFILER "Bulild Tracy profiler" OFF)
 
-if (USE_TRACY)
+if (CEE_USE_TRACY)
 	add_compile_definitions(CEE_PROFILER_ENABLE=1)
-	add_compile_definitions(TRACY_ENABLE=1)
-	add_subdirectory(external/tracy)
+	set(TRACY_ENABLE ON)
 endif()
 
-set(GTEST_HAS_ABSL ON)
-set(ABSL_BUILD_TESTING OFF)
-set(ABSL_ENABLE_INSTALL ON)
-set(ABSL_USE_EXTERNAL_GOOGLETEST ON)
-set(RE2_BUILD_TESTING OFF)
-set(SPDLOG_BUILD_PIC ON)
-set(SPDLOG_ENABLE_PCH ON)
-set(SPDLOG_FMT_EXTERNAL ON)
+enable_testing()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-add_subdirectory(external/abseil-cpp)
-add_subdirectory(external/re2)
-add_subdirectory(external/googletest)
-add_subdirectory(external/glad)
-add_subdirectory(external/glm)
-add_subdirectory(external/fmt)
-add_subdirectory(external/spdlog)
+include(cmake/Dependencies.cmake)
+
+add_subdirectory(ceeCore)
 add_subdirectory(profiler)
+add_subdirectory(platform)
 add_subdirectory(gui)
-add_subdirectory(hal)
 add_subdirectory(mppm)
 add_subdirectory(application)
-
-enable_testing()
 
 if (CEE_BUILD_TESTS)
 	add_subdirectory(tests)

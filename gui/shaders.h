@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeGUI
  * Copyright (C) 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -20,6 +20,8 @@
 #define CEE_GUI_SHADERS_H_
 
 #include <config.h>
+#include <cee/core/except.h>
+#include <cee/core/log.h>
 
 #include <glad/gl.h>
 #include <glm/glm.hpp>
@@ -30,23 +32,19 @@
 
 namespace cee {
 namespace gui {
-	// enum class GLSLVersion {
-	// 	ES_100,
-	// 	ES_320,
-	// };
-	//
-	// inline GLSLVersion GLSLSVersionFromString(std::string_view versionString) {
-	// 	if (versionString.find("OpenGL ES 3.2") != std::string_view::npos) {
-	// 		return GLSLVersion::ES_320;
-	// 	} else if (versionString.find("OpenGL ES 2.0") != std::string_view::npos) {
-	// 		return GLSLVersion::ES_100;
-	// 	}
-	// 	return GLSLVersion::ES_100;
-	// }
+	class Context;
+
+	class ShaderCompilerError : public core::Error {
+	public:
+		explicit ShaderCompilerError(const std::string &what) : Error(what) {}
+		explicit ShaderCompilerError(const char *what) : Error(what) {}
+		ShaderCompilerError(const ShaderCompilerError &other) = default;
+		ShaderCompilerError &operator=(const ShaderCompilerError &other) = default;
+	};
 
 	class Shader {
 	public:
-		Shader(std::string_view vertSrc, std::string_view fragSrc);
+		Shader(std::string_view vertSrc, std::string_view fragSrc, Logger logger);
 		~Shader();
 
 		void Bind();
@@ -58,6 +56,7 @@ namespace gui {
 
 	private:
 		GLint m_Program;
+		Logger m_Logger;
 		std::unordered_map<std::string, GLint> m_UniformLocations;
 	};
 }

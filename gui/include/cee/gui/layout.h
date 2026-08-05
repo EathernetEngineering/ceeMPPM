@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeGUI
  * Copyright (C) 2025 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -21,9 +21,6 @@
 
 #include <cee/gui/widget.h>
 
-#include <algorithm>
-#include <type_traits>
-
 namespace cee {
 namespace gui {
 	enum AlignmentFlag {
@@ -42,6 +39,11 @@ namespace gui {
 	public:
 		Layout() = default;
 		virtual ~Layout() = default;
+
+	public:
+		template<typename T, typename ...Args>
+		requires std::derived_from<T, Object>
+		friend std::unique_ptr<T> CreateNode(Args &&...args);
 	};
 }
 }

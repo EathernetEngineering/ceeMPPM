@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeGUI
  * Copyright (C) 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -28,13 +28,15 @@
 namespace cee {
 namespace gui {
 	class Text : public Widget {
-	public:
+	protected:
 		Text(const std::string &text, int size)
 		 : m_Text(text), m_Size(size), m_Color(1.f, 1.f, 1.f, 1.f)
 		{}
 		Text(const std::string& text, int size, const Color& color)
 		 : m_Text(text), m_Size(size), m_Color(color)
 		{}
+
+	public:
 		virtual ~Text() = default;
 
 		inline void SetText(const std::string &text) { m_Text = text; }
@@ -43,15 +45,22 @@ namespace gui {
 
 	protected:
 		virtual bool HasClip() const override { return true; }
-		virtual Rect Clip() const override { return m_AbsoluteRect; }
+		virtual Rect Clip() const override;
 
 		virtual Size OnMeasure(const Constraints &c) override;
 		virtual void OnRender() override;
+
+		virtual bool CanHaveChildren() const override { return false; }
 
 	private:
 		std::string m_Text;
 		int m_Size;
 		Color m_Color;
+
+	public:
+		template<typename T, typename ...Args>
+		requires std::derived_from<T, Object>
+		friend std::unique_ptr<T> CreateNode(Args &&...args);
 	};
 }
 }

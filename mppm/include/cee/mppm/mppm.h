@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeMPPM
  * Copyright (C) 2025 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -21,9 +21,13 @@
 
 #include <cee/mppm/event.h>
 
-#include <cee/hal/gfx.h>
+#include <cee/core/log.h>
+
+#include <cee/platform/gfx.h>
+#include <cee/platform/i2c.h>
 
 #include <memory>
+#include <vector>
 
 namespace cee {
 class MPPM {
@@ -32,6 +36,8 @@ public:
 	~MPPM();
 
 	int Run();
+
+	static Logger &GetLogger() { return s_Instance->m_Log->GetLogger(); }
 
 private:
 	void OnEvent(Event &e);
@@ -53,7 +59,21 @@ private:
 
 private:
 	bool m_Running;
-	std::unique_ptr<hal::GraphicsContext> m_HalGfx;
+	std::unique_ptr<Log> m_Log;
+	spdlog::level::level_enum m_LogLevel;
+	std::string m_LogFile;
+	platform::GfxContextType m_GfxBackend = platform::GfxContextType::PLATFORM_GFX_CONTEXT_NONE;
+	platform::I2CContextType m_I2CBackend = platform::I2CContextType::PLATFORM_I2C_CONTEXT_NONE;
+	std::shared_ptr<platform::I2CController> m_I2CController;
+	std::unique_ptr<platform::PCF8591> m_Adc;
+	std::unique_ptr<platform::GraphicsContext> m_GfxContext;
+
+	std::vector<float> m_LeadII;
+	int m_LeadIIPos;
+	std::vector<float> m_Pres;
+	int m_PresPos;
+	std::vector<float> m_Osc;
+	int m_OscPos;
 
 private:
 	static MPPM *s_Instance;

@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeGUI
  * Copyright (C) 2025 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -23,27 +23,38 @@
 
 #include <cee/font/fonts.h>
 
-#include <spdlog/spdlog.h>
+#include <cee/core/log.h>
 
 #include <memory>
 
 namespace cee {
 namespace gui {
-	int Init();
+	namespace internal {
+		int PrepareNode(void *ptr);
+	}
+
+	int Init(Logger logger = nullptr);
 	void Shutdown();
 
 	void AddFont(std::shared_ptr<font::Font> font);
 
 	void SetRootNode(Widget *node);
 
+	template<typename T, typename... Args>
+	requires std::derived_from<T, Object>
+	std::unique_ptr<T> CreateNode(Args &&...args) {
+		std::unique_ptr<T> node(new T(std::forward<Args>(args)...));
+		int result = internal::PrepareNode(dynamic_cast<Object *>(node.get())->m_Impl.get());
+		if (result) {
+			throw GUIError(node->GetDebugName(), "Failed to prepare node {}");
+		}
+		return node;
+	}
+
 	int BeginFrame(const Size &viewport);
 	int Render(const Size &viewport);
 	void EndFrame();
 	inline int HandleEvents() { return 0; }
-
-	void InitLogger();
-	void ShutdownLogger();
-	std::shared_ptr<spdlog::logger> GetLogger();
 }
 }
 

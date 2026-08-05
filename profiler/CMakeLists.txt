@@ -1,4 +1,4 @@
-# CeeHealth
+# ceeProfiler
 # Copyright (C) 2025 2026 Chloe Eather
 # 
 # This program is free software: you can redistribute it and/or modify it under
@@ -16,37 +16,13 @@
 
 cmake_minimum_required(VERSION 4.0)
 
-find_package(PkgConfig REQUIRED)
-
-list(APPEND PROFILER_PRIVATE_INCLUDEDIRS /usr/include ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-list(APPEND PROFILER_PRIVATE_INCLUDEDIRS ${CMAKE_SOURCE_DIR}/external/tracy/public)
-list(APPEND PROFILER_PUBLIC_INCLUDEDIRS ${CMAKE_CURRENT_SOURCE_DIR}/include)
-list(APPEND PROFILER_PUBLIC_INCLUDEDIRS ${CMAKE_SOURCE_DIR}/external/tracy/public/tracy)
-list(APPEND PROFILER_LIBRARYDIRS /usr/lib)
-list(APPEND PROFILER_LIBRARIES spdlog::spdlog)
-
-if (USE_TRACY)
-	list(APPEND GUI_LIBRARIES TracyClient)
-endif()
-
-list(APPEND PROFILER_SOURCES
-	${CMAKE_CURRENT_SOURCE_DIR}/profiler.cpp
-)
-
-if (USE_TRACY)
-	add_library(ceeProfiler SHARED ${PROFILER_SOURCES})
-	target_include_directories(ceeProfiler PRIVATE ${PROFILER_PRIVATE_INCLUDEDIRS})
-	target_include_directories(ceeProfiler PUBLIC ${PROFILER_PUBLIC_INCLUDEDIRS})
-	target_link_directories(ceeProfiler PRIVATE ${PROFILER_LIBRARYDIRS})
-	target_link_libraries(ceeProfiler PUBLIC ${PROFILER_LIBRARIES})
+if (CEE_USE_TRACY)
+	add_library(ceeProfiler INTERFACE)
+	target_link_libraries(ceeProfiler INTERFACE Tracy::TracyClient)
+	target_compile_definitions(ceeProfiler INTERFACE TRACY_ENABLE)
 else()
 	add_library(ceeProfiler INTERFACE)
-	target_include_directories(ceeProfiler INTERFACE ${PROFILER_PUBLIC_INCLUDEDIRS})
-	target_link_libraries(ceeProfiler INTERFACE ${PROFILER_LIBRARIES})
 endif()
 
-set_target_properties(ceeProfiler
-	PROPERTIES
-	CXX_STANDARD 20
-	CXX_STANDARD_REQUIRED ON)
+target_include_directories(ceeProfiler INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

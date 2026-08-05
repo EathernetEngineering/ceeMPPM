@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeGUI
  * Copyright (C) 2025 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -19,47 +19,54 @@
 #ifndef CEE_GUI_OBJECT_H_
 #define CEE_GUI_OBJECT_H_
 
+#include <cee/core/except.h>
+
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
-#include <any>
-#include <functional>
-#include <set>
-#include <string>
-#include <utility>
-
 #include <cstdint>
+#include <memory>
+#include <string>
 
 namespace cee {
 namespace gui {
-	class Context;
+	class GUIError : public core::Error {
+	public:
+		explicit GUIError(const std::string &object, const std::string &what)
+		 : Error(what), m_ObjectName(object) {
+		}
+		explicit GUIError(const std::string &object, const char *what)
+		 : Error(what), m_ObjectName(object) {
+		}
+		GUIError(const GUIError &other) = default;
+		GUIError &operator=(const GUIError &other) = default;
 
-	enum class Signal : int64_t {
-		None = 0,
-		Activate = 1,
-		Destroy = 2,
-		Hide = 3,
-		Show = 4,
-		Clicked = 5
+		const std::string &GetObjectName() const noexcept { return m_ObjectName; }
+
+	private:
+		std::string m_ObjectName;
 	};
 
-	template<typename... Args>
-	struct SignalHandler {
-		Signal sig;
-		std::function<void(Args...)> f;
-
-		void invoke(Args&&... args);
-
-		void operator()(Args... args) {
-			invoke(std::forward<Args>(args)...);
+	class ObjectError : public core::UsageError {
+	public:
+		explicit ObjectError(const std::string &object, const std::string &what)
+		 : UsageError(what), m_ObjectName(object) {
 		}
-
-		bool operator==(const SignalHandler<Args...>& other) {
-			return (this->sig == other.sig) &&
-			(std::hash<SignalHandler<Args...>>(*this) == std::hash<SignalHandler<Args...>>(other));
+		explicit ObjectError(const std::string &object, const char *what)
+		 : UsageError(what), m_ObjectName(object) {
 		}
+		ObjectError(const ObjectError &other) = default;
+		ObjectError &operator=(const ObjectError &other) = default;
+
+		const std::string &GetObjectName() const noexcept { return m_ObjectName; }
+
+	private:
+		std::string m_ObjectName;
 	};
 
+	namespace internal {
+		int PrepareNode(void *ptr);
+	}
 	// struct Translation {
 	// 	float x, y;
 	// };
@@ -94,6 +101,18 @@ namespace gui {
 		~Rect() = default;
 	};
 
+	constexpr bool operator==(const Rect &lhs, const Rect &rhs) {
+			constexpr float epsilon = 1e-6f;
+			return (std::abs(lhs.x - rhs.x) <= epsilon) &&
+				(std::abs(lhs.y - rhs.y) <= epsilon) &&
+				(std::abs(lhs.w - rhs.w) <= epsilon) &&
+				(std::abs(lhs.h - rhs.h) <= epsilon);
+	}
+
+	constexpr bool operator!=(const Rect &lhs, const Rect &rhs) {
+		return !(lhs == rhs);
+	}
+
 	struct Point {
 		float x, y;
 
@@ -112,6 +131,8 @@ namespace gui {
 			return *this;
 		}
 		~Point() = default;
+
+		glm::vec2 vec() const { return { x, y }; }
 	};
 
 	struct Size {
@@ -196,41 +217,29 @@ namespace gui {
 	}
 
 	class Object {
-	public:
-		Object() = default;
+	private:
+		class Impl;
+		struct ImplDeleter {
+			void operator()(Impl *p);
+		};
+		friend class Impl;
+
+	protected:
+		Object();
 		virtual ~Object() = default;
 
-		template <typename... Args>
-		int64_t SignalConnect(const Signal sig, std::function<void(Args...)> f);
-		void SignalDisconnect(int64_t handlerId);
-		template <typename... Args>
-		void SignalDisconnectByFunc(const Signal sig, std::function<void(Args...)> f);
-
-		void Enable(bool enabled) {
-			m_Enabled = !enabled;
-		}
-
-		void Show(bool show) {
-			m_Hidden = !show;
-		}
-
-		bool IsEnabled() const { return m_Enabled; }
-		bool IsHidden() const { return m_Hidden; }
+	public:
+		void Enable(bool enabled);
+		void Show(bool show);
+		bool IsEnabled() const;
+		bool IsShown() const;
 
 		void AddChild(Object *child);
 		void RemoveChild(Object *child);
+		bool HasChildren() const;
 
 		void SetDebugName(const std::string &name) { m_DebugName = name; }
 		const std::string& GetDebugName() const { return m_DebugName; }
-
-	public:
-		Size _Measure(const Constraints &c);
-		void _Arrange(const Rect &rect, const Rect &parentAbsRect);
-		void _RenderTree();
-
-		Size _GetDesired() const { return m_Desired; }
-		Rect _GetRect() const { return m_Rect; }
-		Rect _GetAbsoluteRect() const { return m_AbsoluteRect; }
 	
 	protected:
 		void RenderChildren();
@@ -244,20 +253,21 @@ namespace gui {
 		virtual void OnArrange() {}
 		virtual void OnRender() {}
 
+		virtual bool CanHaveChildren() const { return false; }
+
+		static Impl *GetImpl(Object *o) { return o->m_Impl.get(); }
+
 	protected:
-		Context *ctx = nullptr;
-		bool m_Enabled = true;
-		bool m_Hidden = false;
-		std::vector<Object *> m_Children;
-
-		Size m_Desired{};
-		Rect m_Rect{};
-		Rect m_AbsoluteRect{};
-
 		std::string m_DebugName;
 
-	private:
-		std::set<std::any> m_SignalCallbacks;
+	protected:
+		std::unique_ptr<Impl, ImplDeleter> m_Impl;
+
+	public:
+		friend int internal::PrepareNode(void *ptr);
+		template<typename T, typename ...Args>
+		requires std::derived_from<T, Object>
+		friend std::unique_ptr<T> CreateNode(Args &&...args);
 	};
 }
 }

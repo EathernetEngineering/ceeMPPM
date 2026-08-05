@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeMPPM
  * Copyright (C) 2025 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -24,17 +24,6 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
-
-/*
- **************************************************
- ********** Useful macro helper functions *********
- **************************************************
- */
-#define HAS_ARGS_IMPL(x, ...) x
-#define HAS_ARGS(...) HAS_ARGS_IMPL(__VA_OPT__(1, ) 0)
-
-#define COMPOSE_MACRO_IMPL(lhs, rhs) lhs##rhs
-#define COMPOSE_MACRO(lhs, rhs) COMPOSE_MACRO_IMPL(lhs, rhs)
 
 namespace cee {
 namespace util {

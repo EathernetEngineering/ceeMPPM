@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeGUI
  * Copyright (C) 2025 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -17,8 +17,7 @@
  */
 
 #include <cee/gui/gui.h>
-#include <context.h>
-#include <log.h>
+#include <object_impl.h>
 
 #include <cee/profiler/profiler.h>
 
@@ -28,7 +27,7 @@ namespace cee {
 namespace gui {
 	class RootNode : public Object {
 	public:
-		RootNode(Context *ctx) : m_Child(nullptr) { this->ctx = ctx; }
+		RootNode(std::shared_ptr<Context> ctx) : m_Child(nullptr) { m_Impl->ctx = ctx; }
 
 		inline void SetChild(Object *child) {
 			if (m_Child != nullptr) {
@@ -48,6 +47,18 @@ namespace gui {
 
 		void SetClip(const Size &clip) { m_Clip = { 0.f, 0.f, clip.x, clip.y }; }
 
+		void StartMeasure(float x, float y, float w, float h) {
+			m_Impl->Measure({ x, y, w, h});
+		}
+
+		void StartArrange(const Rect &viewportRect) {
+			m_Impl->Arrange(viewportRect, viewportRect);
+		}
+
+		void StartRender() {
+			m_Impl->RenderTree();
+		}
+
 	protected:
 		virtual bool HasClip() const override { return true; }
 		virtual Size Transform() const override { return { 0.f, 0.f }; }
@@ -58,14 +69,16 @@ namespace gui {
 		virtual Size OnMeasure(const Constraints &c) override {
 			if (m_Child == nullptr)
 				return { 0.f, 0.f };
-			return m_Child->_Measure(c);
+			return GetImpl(m_Child)->Measure(c);
 		}
 
 		virtual void OnArrange() override {
 			if (m_Child == nullptr)
 				return;
-			m_Child->_Arrange(m_Rect, m_AbsoluteRect);
+			GetImpl(m_Child)->Arrange(m_Impl->m_Rect, m_Impl->m_AbsoluteRect);
 		}
+
+		virtual bool CanHaveChildren() const override { return true; }
 
 	private:
 		Object *m_Child;
@@ -73,13 +86,22 @@ namespace gui {
 	};
 
 	static RootNode *g_Root = nullptr;
-	static std::unique_ptr<Context> g_Ctx;
+	static std::shared_ptr<Context> g_Ctx;
 
-	int Init() {
-		g_Ctx = std::make_unique<Context>();
-		g_Root = new RootNode(g_Ctx.get());
+	namespace internal {
+		int PrepareNode(void *ptr) {
+			Object::Impl& impl = *reinterpret_cast<Object::Impl *>(ptr);
+			impl.ctx = g_Ctx;
+			return 0;
+		}
+	}
+
+	int Init(Logger logger) {
+		g_Ctx = std::make_shared<Context>(logger);
+		g_Root = new RootNode(g_Ctx);
 		if (g_Root == nullptr)
 			return -1;
+		g_Root->SetDebugName("rootNode");
 		return 0;
 	}
 
@@ -106,38 +128,26 @@ namespace gui {
 		Rect viewportRect = { 0.f, 0.f, viewport.w, viewport.h };
 		{
 			PROFILE_SCOPE("GUI Measure");
-			g_Root->_Measure({ 0.f, 0.f, viewport.w, viewport.h });
+			g_Root->StartMeasure(0.f, 0.f, viewport.w, viewport.h);
 		}
 		{
 			PROFILE_SCOPE("GUI Arrange");
-			g_Root->_Arrange(viewportRect, viewportRect);
+			g_Root->StartArrange(viewportRect);
 		}
 		{
 			PROFILE_SCOPE("GUI render context prepare");
 			g_Ctx->SetUniform(Context::GuiShader::Flat, "uProj", g_Ctx->GetProjection());
-			g_Ctx->SetUniform(Context::GuiShader::Text, "uProj", g_Ctx->GetProjection());
+			g_Ctx->SetUniform(Context::GuiShader::Texture, "uProj", g_Ctx->GetProjection());
 		}
 		{
 			PROFILE_SCOPE("GUI Draw");
-			g_Root->_RenderTree();
+			g_Root->StartRender();
 		}
 		g_Ctx->Flush();
 		return 0;
 	}
 
 	void EndFrame() {
-	}
-
-	void InitLogger() {
-		Log::Init();
-	}
-
-	void ShutdownLogger() {
-		Log::Shutdown();
-	}
-
-	std::shared_ptr<spdlog::logger> GetLogger() {
-		return Log::GetLogger();
 	}
 }
 }

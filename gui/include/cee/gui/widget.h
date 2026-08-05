@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeGUI
  * Copyright (C) 2025 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -24,9 +24,14 @@
 namespace cee {
 namespace gui {
 	class Widget : public Object {
-	public:
+	protected:
 		Widget() = default;
 		virtual ~Widget() = default;
+
+	public:
+		template<typename T, typename ...Args>
+		requires std::derived_from<T, Object>
+		friend std::unique_ptr<T> CreateNode(Args &&...args);
 	};
 }
 }

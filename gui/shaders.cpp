@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeGUI
  * Copyright (C) 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -17,17 +17,19 @@
  */
 
 #include <shaders.h>
-#include <log.h>
+#include <context.h>
+
+#include <cee/core/except.h>
+
 #include <cee/profiler/profiler.h>
 
 #include <glad/gl.h>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <stdexcept>
 
 namespace cee {
 namespace gui {
-	static void PrettyPrintErrorLog(const char *log) {
+	static void PrettyPrintErrorLog(const char *log, Logger logger) {
 		std::string_view logView(log);
 		size_t pos = 0;
 		while (pos < logView.size()) {
@@ -36,24 +38,23 @@ namespace gui {
 				nextPos = logView.size();
 			}
 			std::string_view line = logView.substr(pos, nextPos - pos);
-			CEE_WARN("\t{}", line);
+			logger->warn("\t{}", line);
 			pos = nextPos + 1;
 		}
 	}
 
-	Shader::Shader(std::string_view vertSrc, std::string_view fragSrc)
-	 : m_Program(0)
-	{
+	Shader::Shader(std::string_view vertSrc, std::string_view fragSrc, Logger logger)
+	 : m_Program(0), m_Logger(logger) {
 		PROFILE_FUNCTION();
 		GLuint vertShader, fragShader;
 		GLint success;
 
 		vertShader = glCreateShader(GL_VERTEX_SHADER);
 		if (vertShader == 0)
-			throw std::runtime_error("Failed to create vertex shader");
+			throw ShaderCompilerError("Failed to create vertex shader");
 		fragShader = glCreateShader(GL_FRAGMENT_SHADER);
 		if (fragShader == 0)
-			throw std::runtime_error("Failed to create fragment shader");
+			throw ShaderCompilerError("Failed to create fragment shader");
 
 		{
 			PROFILE_SCOPE("Compile vertex shader");
@@ -68,15 +69,15 @@ namespace gui {
 				log = new char[logLength];
 				if (log == nullptr) {
 					glDeleteShader(vertShader);
-					throw std::runtime_error("Failed to allocate memory for vertex shader error log");
+					throw ShaderCompilerError("Failed to allocate memory for vertex shader error log");
 				}
 				glGetShaderInfoLog(vertShader, logLength, NULL, log);
-				CEE_WARN("Failed to compile vertex shader:");
-				PrettyPrintErrorLog(log);
+				m_Logger->warn("Failed to compile vertex shader:");
+				PrettyPrintErrorLog(log, m_Logger);
 				
 				delete[] log;
 				glDeleteShader(vertShader);
-				throw std::runtime_error("Failed to compile vertex shader");
+				throw ShaderCompilerError("Failed to compile vertex shader");
 			}
 		}
 		{
@@ -93,21 +94,21 @@ namespace gui {
 				if (log == nullptr) {
 					glDeleteShader(vertShader);
 					glDeleteShader(fragShader);
-					throw std::runtime_error("Failed to allocate memory for fragment shader error log");
+					throw ShaderCompilerError("Failed to allocate memory for fragment shader error log");
 				}
 				glGetShaderInfoLog(fragShader, logLength, NULL, log);
-				CEE_WARN("Failed to compile fragment shader:");
-				PrettyPrintErrorLog(log);
+				m_Logger->warn("Failed to compile fragment shader:");
+				PrettyPrintErrorLog(log, m_Logger);
 
 				delete[] log;
 				glDeleteShader(vertShader);
 				glDeleteShader(fragShader);
-				throw std::runtime_error("Failed to compile fragment shader");
+				throw ShaderCompilerError("Failed to compile fragment shader");
 			}
 		}
 		m_Program = glCreateProgram();
 		if (m_Program == 0)
-			throw std::runtime_error("Failed to create shader program");
+			throw ShaderCompilerError("Failed to create shader program");
 		{
 			PROFILE_SCOPE("Link shader program");
 			glAttachShader(m_Program, vertShader);
@@ -123,17 +124,17 @@ namespace gui {
 					glDeleteShader(vertShader);
 					glDeleteShader(fragShader);
 					glDeleteProgram(m_Program);
-					throw std::runtime_error("Failed to allocate memory for shader program error log");
+					throw ShaderCompilerError("Failed to allocate memory for shader program error log");
 				}
 				glGetProgramInfoLog(m_Program, logLength, NULL, log);
-				CEE_WARN("Failed to link shader:");
-				PrettyPrintErrorLog(log);
+				m_Logger->warn("Failed to link shader:");
+				PrettyPrintErrorLog(log, m_Logger);
 
 				delete[] log;
 				glDeleteShader(vertShader);
 				glDeleteShader(fragShader);
 				glDeleteProgram(m_Program);
-				throw std::runtime_error("Failed to link shader");
+				throw ShaderCompilerError("Failed to link shader");
 			}
 		}
 
@@ -160,8 +161,8 @@ namespace gui {
 		if (it == m_UniformLocations.end()) {
 			GLint location = glGetUniformLocation(m_Program, name.c_str());
 			if (location == -1) {
-				CEE_WARN("Uniform '{}' not found in shader", name);
-				throw std::runtime_error("Uniform not found in shader");
+				m_Logger->warn("Uniform '{}' not found in shader", name);
+				throw core::InvalidParameter("Uniform not found in shader");
 			}
 			m_UniformLocations[name] = location;
 			return location;

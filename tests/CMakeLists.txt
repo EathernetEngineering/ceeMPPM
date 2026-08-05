@@ -1,4 +1,4 @@
-# CeeHealth
+# ceeMPPM
 # Copyright (C) 2025 Chloe Eather
 # 
 # This program is free software: you can redistribute it and/or modify it under
@@ -15,22 +15,6 @@
 # this program. If not, see <https://www.gnu.org/licenses/>.
 
 cmake_minimum_required(VERSION 4.0)
-
-if (TARGET gtest_main)
-	message(STATUS "Found Google Test, building tests.")
-elseif (CEE_GOOGLETEST_DIR)
-	add_subdirectory(CEE_GOOGLETEST_DIR)
-	if (NOT TARGET gtest_main)
-		message(SEND_ERROR "Could not add googletest."
-			"Are you sure ${CEE_GOOGLETEST_DIR} is correct?")
-	endif()
-elseif (CEE_FIND_GOOGLETEST)
-	find_package(PkgConfig REQUIRED)
-	find_package(GTest REQUIRED)
-else()
-	message(SEND_ERROR "Did not find googletest, tests will not be built."
-		"If you have provided an external googletest set CEE_GOOGLETEST_DIR.")
-endif()
 
 # Use:
 #
@@ -57,10 +41,10 @@ function(add_cee_unittest)
 		${ARG_INCLUDE_DIRS}
 	)
 	target_link_libraries(${target} PRIVATE ${ARG_LIBS})
-	if (TARGET gtest_main)
-		target_link_libraries(${target} PRIVATE gtest_main)
-	elseif (CEE_FIND_GOOGLETEST)
-		target_link_libraries(${target} PRIVATE GTest::gtest_main)
+	target_link_libraries(${target} PRIVATE GTest::gtest_main)
+	if (CEE_USE_ASAN)
+		target_compile_options(${target} PRIVATE -fsanitize=address,leak)
+		target_link_options(${target} PRIVATE -fsanitize=address,leak)
 	endif()
 	set_target_properties(${target}
 		PROPERTIES
@@ -73,28 +57,26 @@ function(add_cee_unittest)
 	set_property(TARGET ${target} PROPERTY FOLDER "cee tests")
 endfunction()
 
-set(MPPMTest_SOURCES
-	mppm_log.cpp
-	mppm_file.cpp
-	mppm_parse.cpp
+set(CORE_TEST_SOURCES
+	core_file.cpp
 )
 
-set(FONTTest_SOURCES
+set(FONT_TEST_SOURCES
 	atlas_cache.cpp
 	glyph_cache.cpp
 	font_managment.cpp
 )
 
 add_cee_unittest(
-	TARGET mppm_utils
-	SRCS ${MPPMTest_SOURCES}
+	TARGET core_utils
+	SRCS ${CORE_TEST_SOURCES}
 	LIBS ceeMPPM
-	INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/mppm ${CMAKE_BINARY_DIR}/mppm
+	INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/ceeCore
 )
 
 add_cee_unittest(
 	TARGET font_lib
-	SRCS ${FONTTest_SOURCES}
+	SRCS ${FONT_TEST_SOURCES}
 	LIBS ceeGUI
 	INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/gui
 )

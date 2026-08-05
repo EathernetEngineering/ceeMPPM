@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeGUI
  * Copyright (C) 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -22,6 +22,8 @@
 #include <cee/gui/widget.h>
 #include <glm/vec4.hpp>
 
+#include <optional>
+
 namespace cee {
 namespace gui {
 	class Box : public Widget {
@@ -31,53 +33,44 @@ namespace gui {
 			Vertical
 		};
 
+	protected:
+		Box();
+		Box(float width, float height);
+		Box(const Color &color);
+		Box(float width, float height, const Color &color);
+
 	public:
-		Box()
-		 : m_ExplicitSize(false), m_Color(0.f, 0.f, 0.f, 0.f)
-		{}
-		Box(float width, float height)
-		 : m_ExplicitSize(true), m_Color(0.f, 0.f, 0.f, 0.f)
-		{
-			m_Desired = { width, height };
-		}
-		Box(const Color& color)
-		 : m_ExplicitSize(false), m_Color(color)
-		{}
-		Box(float width, float height, const Color& color)
-		 : m_ExplicitSize(true), m_Color(color)
-		{
-			m_Desired = { width, height };
-		}
 		virtual ~Box() = default;
 
-		inline void Resize(float width, float height) {
-			if (width == 0.f && height == 0.f) {
-				m_ExplicitSize = false;
-				return;
-			}
-			m_ExplicitSize = true;
-			m_Desired = { width, height };
-		}
-		inline Size GetSize() const { return m_Desired; }
+		void Resize(float width, float height);
 
-		inline void SetStackDirection(StackDirection dir) {
+		Size GetSize() const;
+
+		void SetStackDirection(StackDirection dir) {
 			m_StackDirection = dir;
 		}
 
-		inline void SetColor(const Color& color) { m_Color = color; }
+		void SetColor(const Color& color) { m_Color = color; }
 
 	protected:
 		virtual bool HasClip() const override { return true; }
-		virtual Rect Clip() const override { return m_AbsoluteRect; }
+		virtual Rect Clip() const override;
 
 		virtual Size OnMeasure(const Constraints &c) override;
 		virtual void OnArrange() override;
 		virtual void OnRender() override;
 
+		virtual bool CanHaveChildren() const override { return true; }
+
 	private:
 		bool m_ExplicitSize;
 		StackDirection m_StackDirection = StackDirection::Horizontal;
-		Color m_Color;
+		std::optional<Color> m_Color;
+
+	public:
+		template<typename T, typename ...Args>
+		requires std::derived_from<T, Object>
+		friend std::unique_ptr<T> CreateNode(Args &&...args);
 	};
 }
 }

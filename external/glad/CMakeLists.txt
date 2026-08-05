@@ -1,4 +1,4 @@
-# CeeHealth
+# ceeMPPM
 # Copyright (C) 2025 2026 Chloe Eather
 # 
 # This program is free software: you can redistribute it and/or modify it under
@@ -16,24 +16,12 @@
 
 cmake_minimum_required(VERSION 4.0)
 
-list(APPEND glad_SOURCES src/egl.c)
-list(APPEND glad_PUBLIC_HEADERS include/glad/egl.h include/EGL/eglplatform.h)
-list(APPEND glad_LIBRARIES EGL)
-list(APPEND glad_SOURCES src/gles2.c src/gles1.c)
-list(APPEND glad_PUBLIC_HEADERS include/glad/gles1.h include/glad/gles2.h)
-list(APPEND glad_LIBRARIES GLESv2)
-list(APPEND glad_PUBLIC_HEADERS include/KHR/khrplatform.h)
-
-add_library(glad ${glad_SOURCES})
-
+add_library(glad src/egl.c src/gles2.c src/gles1.c)
 set_target_properties(glad
 	PROPERTIES
 	C_STANDARD 99
-	C_STANDARD_REQUIRED ON
-	CXX_STANDARD 20
-	CXX_STANDARD_REQUIRED ON
-	PUBLIC_HEADER "${glad_PUBLIC_HEADERS}")
+	C_STANDARD_REQUIRED ON)
 
 target_include_directories(glad PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(glad PUBLIC ${glad_LIBRARIES})
+target_link_libraries(glad INTERFACE EGL GLESv2)
 

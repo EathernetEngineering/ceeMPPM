@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeProfiler
  * Copyright (C) 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -28,7 +28,7 @@
 #endif
 
 #ifdef CEE_PROFILER_ENABLE
-#include <Tracy.hpp>
+#include <tracy/Tracy.hpp>
 #define PROFILE_SCOPE(name) ZoneScopedN(name)
 #define PROFILE_SCOPE_UNNAMED() ZoneScoped
 #define PROFILE_FUNCTION() ZoneScopedN(PRETTY_SIGNATURE)

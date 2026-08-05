@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeGUI
  * Copyright (C) 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -22,9 +22,11 @@
 #include <cee/gui/object.h>
 #include <shaders.h>
 
+#include <cee/core/except.h>
+
 #include <cee/font/fonts.h>
 
-#include <cee/hal/gfx.h>
+#include <cee/platform/gfx.h>
 
 #include <glad/gl.h>
 #include <glm/glm.hpp>
@@ -36,7 +38,8 @@
 
 namespace cee {
 namespace gui {
-	constexpr int BATCH_MAX_VERTICES = 1024;
+	constexpr int BATCH_MAX_VERTICES = 16384;
+	constexpr int BATCH_MAX_INDICES = 24576;
 
 	struct Vertex {
 		glm::vec4 position;
@@ -48,12 +51,13 @@ namespace gui {
 	public:
 		enum class GuiShader {
 			Flat,
-			Text
+			Texture
 		};
 
 	public:
-		Context();
+		Context(Logger logger = nullptr);
 		~Context();
+
 		void SetViewport(const Size &viewport);
 
 		void PushClip(const Rect &clip);
@@ -64,6 +68,10 @@ namespace gui {
 		void DrawTriangle(const Point &a, const Point &b, const Point &c, const Color &color);
 		void DrawRect(const Rect &rect, const Color &color);
 		void DrawLine(const Point &p1, const Point &p2, float width, const Color &color);
+		void DrawPolyLine(std::span<const Point> points, float width, const Color &color);
+		void DrawPolyLine(const std::vector<Point> &points, float width, const Color &color) {
+			DrawPolyLine(std::span(points.cbegin(), points.cend()), width, color);
+		}
 		void DrawGlyph(const Point &origin, const Color& color, const font::Glyph &glyph);
 		void DrawText(const std::string &text, const Point &position, const Color &color);
 		void Flush();
@@ -73,6 +81,18 @@ namespace gui {
 
 		const glm::mat4& GetProjection() const { return m_Projection; }
 		font::Font *GetDefaultFont() const { return m_Fonts[0].get(); };
+
+		template<typename T>
+		void Log(spdlog::level::level_enum level, const T &msg) {
+			if (m_Logger)
+				m_Logger->log(level, msg);
+		}
+
+		template<typename ...Args>
+		void Log(spdlog::level::level_enum level, spdlog::format_string_t<Args...> fmt, Args &&...args) {
+			if (m_Logger)
+				m_Logger->log(level, fmt, std::forward<Args>(args)...);
+		}
 
 	private:
 		struct TriangleBatch {
@@ -120,6 +140,7 @@ namespace gui {
 		void InvalidateAtlasTexture(AtlasTexture& tex);
 
 	private:
+		Logger m_Logger;
 		std::unique_ptr<Shader> m_QuadFlatShader;
 		std::unique_ptr<Shader> m_TextShader;
 		std::unique_ptr<font::FontManager> m_FontManager;

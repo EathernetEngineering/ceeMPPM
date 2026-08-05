@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeMPPM
  * Copyright (C) 2025 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -19,16 +19,18 @@
 #ifndef CEE_MPPM_CONFIG_H_
 #define CEE_MPPM_CONFIG_H_
 
-#define MPPM_VERSION_MAJOR @MultiPPM_VERSION_MAJOR@
-#define MPPM_VERSION_MINOR @MultiPPM_VERSION_MINOR@
+#define MPPM_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+#define MPPM_VERSION_MINOR @PROJECT_VERSION_MINOR@
+#define MPPM_VERSION_PATCH @PROJECT_VERSION_MINOR@
+#define MPPM_VERSION_STR "@PROJECT_VERSION@"
 
 #cmakedefine01 CEE_ENABLE_ASSERTIONS
 #cmakedefine01 CEE_ENABLE_ASSERTIONS_RAISE
 
-#cmakedefine01 BUILD_HAL_DRM
-#cmakedefine01 BUILD_HAL_X11
-#cmakedefine01 BUILD_HAL_I2C_HW
-#cmakedefine01 BUILD_HAL_I2C_MOCK
+#cmakedefine01 BUILD_PLATFORM_DRM
+#cmakedefine01 BUILD_PLATFORM_X11
+#cmakedefine01 BUILD_PLATFORM_I2C_HW
+#cmakedefine01 BUILD_PLATFORM_I2C_MOCK
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeMPPM
  * Copyright (C) 2025 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the

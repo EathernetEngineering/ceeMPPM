@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeGUI
  * Copyright (C) 2025 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -30,6 +30,11 @@ namespace gui {
 		virtual ~GridLayout() = default;
 
 		// void AddWigdet(std::shared_ptr<Widget> widget, int row, int column);
+
+	public:
+		template<typename T, typename ...Args>
+		requires std::derived_from<T, Object>
+		friend std::unique_ptr<T> CreateNode(Args &&...args);
 	};
 }
 }

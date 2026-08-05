@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeGUI
  * Copyright (C) 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -18,7 +18,6 @@
 
 #include <context.h>
 #include <cee/gui/object.h>
-#include <log.h>
 #include <shaderSrcs.h>
 
 #include <cee/profiler/profiler.h>
@@ -26,22 +25,37 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glad/gl.h>
 
-#include <stdexcept>
-
 namespace cee {
 namespace gui {
-	Context::Context() {
+	enum GLSLVersion {
+		GLSL_ES_NONE,
+		GLSL_ES_100,
+		GLSL_ES_320,
+	};
+
+	static GLSLVersion ParseGlslVersionString(const char *str) {
+		std::string string = str;
+		if (string.find("GLSL ES 1.0") != string.npos) {
+			return GLSL_ES_100;
+		} else if (string.find("GLSL ES 3.2") != string.npos) {
+			return GLSL_ES_320;
+		}
+		return GLSL_ES_NONE;
+	}
+
+	Context::Context(Logger logger)
+	 : m_Logger(logger) {
 		 m_FontManager = std::make_unique<font::FontManager>();
 		 m_FontManager->SetDPI(96);
 		 m_Fonts.emplace(m_Fonts.begin(), m_FontManager->CreateFont("/usr/share/fonts/Adwaita/AdwaitaSans-Regular.ttf"));
 
 		glGenBuffers(1, &m_VBO);
 		if (m_VBO == 0) {
-			throw std::runtime_error("Failed to create OpenGL vertex buffer object");
+			throw core::InternalError("Failed to create OpenGL vertex buffer object");
 		}
 		glGenBuffers(1, &m_EBO);
 		if (m_EBO == 0) {
-			throw std::runtime_error("Failed to create OpenGL index buffer object");
+			throw core::InternalError("Failed to create OpenGL index buffer object");
 		}
 		glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
@@ -53,22 +67,30 @@ namespace gui {
 		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
 		glEnableVertexAttribArray(2);
 
-		glBufferData(GL_ARRAY_BUFFER, 1024 * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, 1024, nullptr, GL_DYNAMIC_DRAW);
-		
-		try {
-			m_QuadFlatShader = std::make_unique<Shader>(VSColorV2, FSColorV2);
-			CEE_DEBUG("Flat color shader compiled successfully");
-			m_TextShader = std::make_unique<Shader>(VSTextV2, FSTextV2);
-			CEE_DEBUG("Text shader compiled successfully");
-		} catch (const std::exception& e) {
-			CEE_TRACE("Failed to compile GLSL ES 100 shaders: {}", e.what());
-			CEE_TRACE("Trying GLSL ES 320");
+		glBufferData(GL_ARRAY_BUFFER, BATCH_MAX_VERTICES * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, BATCH_MAX_INDICES * sizeof(int16_t), nullptr, GL_DYNAMIC_DRAW);
 
-			m_QuadFlatShader = std::make_unique<Shader>(VSColorV3, FSColorV3);
-			CEE_DEBUG("Flat color shader compiled successfully");
-			m_TextShader = std::make_unique<Shader>(VSTextV3, FSTextV3);
-			CEE_DEBUG("Text shader compiled successfully");
+		const char *glslVersion = reinterpret_cast<const char *>(glGetString(GL_SHADING_LANGUAGE_VERSION));
+		if (!glslVersion)
+			throw core::InternalError("Failed to get gl shading language version string");
+
+		auto ver = ParseGlslVersionString(glslVersion);
+		switch (ver) {
+			case GLSL_ES_100:
+				m_QuadFlatShader = std::make_unique<Shader>(VSColorV2, FSColorV2, m_Logger);
+				Log(spdlog::level::trace, "Flat color shader compiled successfully");
+				m_TextShader = std::make_unique<Shader>(VSTextV2, FSTextV2, m_Logger);
+				Log(spdlog::level::trace, "Text shader compiled successfully");
+				break;
+			case GLSL_ES_320:
+				m_QuadFlatShader = std::make_unique<Shader>(VSColorV3, FSColorV3, m_Logger);
+				Log(spdlog::level::trace, "Flat color shader compiled successfully");
+				m_TextShader = std::make_unique<Shader>(VSTextV3, FSTextV3, m_Logger);
+				Log(spdlog::level::trace, "Text shader compiled successfully");
+				break;
+
+			default:
+				throw core::InternalError(fmt::format("GLSL version not compatible ({})", glslVersion));
 		}
 		m_CurrentShader = GuiShader::Flat;
 
@@ -76,6 +98,9 @@ namespace gui {
 		glEnable(GL_BLEND);
 
 		m_Projection = glm::ortho(0.0f, 800.0f, 600.0f, 0.0f);
+		m_ClipStack.emplace();
+
+		glEnable(GL_SCISSOR_TEST);
 	}
 
 	Context::~Context() {
@@ -98,27 +123,47 @@ namespace gui {
 			return;
 		m_Viewport = viewport;
 		m_Projection = glm::ortho(0.f, m_Viewport.w, m_Viewport.h, 0.f);
+		Rect &baseClip = m_ClipStack.top();
+		baseClip.x = 0;
+		baseClip.y = 0;
+		baseClip.w = viewport.w;
+		baseClip.h = viewport.h;
 	}
 
 	void Context::PushClip(const Rect &clip) {
-		Flush();
-		// TODO: Set scissor rect to clip
+		if (clip != m_ClipStack.top()) {
+			Flush();
+			int l = static_cast<int>(std::floor(clip.x));
+			int r = static_cast<int>(std::ceil(clip.x + clip.w));
+			int t = static_cast<int>(std::floor(clip.y));
+			int b = static_cast<int>(std::ceil(clip.y + clip.h));
+			glScissor(l, m_Viewport.h - b, r - l, b - t);
+		}
 		m_ClipStack.push(clip);
 	}
 
 	void Context::PopClip() {
-		Flush();
+		Rect currentClip = m_ClipStack.top();
 		m_ClipStack.pop();
+		Rect prevClip = m_ClipStack.top();
+		if (currentClip != prevClip) {
+			Flush();
+			int l = static_cast<int>(std::floor(prevClip.x));
+			int r = static_cast<int>(std::ceil(prevClip.x + prevClip.w));
+			int t = static_cast<int>(std::floor(prevClip.y));
+			int b = static_cast<int>(std::ceil(prevClip.y + prevClip.h));
+			glScissor(l, m_Viewport.h - b, r - l, b - t);
+		}
 	}
 
 	void Context::PushTransform(const Size &transform) {
-		Flush();
+		// Flush();
 		m_TransformStack.push(transform);
 		// TODO:
 	}
 
 	void Context::PopTransform() {
-		Flush();
+		// Flush();
 		m_TransformStack.pop();
 	}
 
@@ -181,28 +226,30 @@ namespace gui {
 
 	void Context::DrawLine(const Point &p1, const Point &p2, float width, const Color &color)
 	{
-		if (m_Lines.vertexCount + 4 > BATCH_MAX_VERTICES) {
+		if (p1.x == p2.x && p1.y == p2.y)
+			return;
+		if (m_Lines.vertexCount + 4 > BATCH_MAX_VERTICES)
 			FlushLines();
-		}
-		glm::vec2 dir = glm::normalize(glm::vec2(p2.x, p2.y) - glm::vec2(p1.x, p1.y));
+
+		glm::vec2 dir = glm::normalize(p2.vec() - p1.vec());
 		glm::vec2 normal = glm::vec2(-dir.y, dir.x) * width * 0.5f;
 		m_Lines.vertices[m_Lines.vertexCount++] = {
-			{ glm::vec2(p1.x, p1.y) + normal, 0.0f, 1.0f },
+			{ p1.vec() + normal, 0.0f, 1.0f },
 			color,
 			{ 0.f, 0.f }
 		};
 		m_Lines.vertices[m_Lines.vertexCount++] = {
-			{ glm::vec2(p2.x, p2.y) + normal, 0.0f, 1.0f },
+			{ p2.vec() + normal, 0.0f, 1.0f },
 			color,
 			{ 0.f, 0.f }
 		};
 		m_Lines.vertices[m_Lines.vertexCount++] = {
-			{ glm::vec2(p2.x, p2.y) - normal, 0.0f, 1.0f },
+			{ p2.vec() - normal, 0.0f, 1.0f },
 			color,
 			{ 0.f, 0.f }
 		};
 		m_Lines.vertices[m_Lines.vertexCount++] = {
-			{ glm::vec2(p1.x, p1.y) - normal, 0.0f, 1.0f },
+			{ p1.vec() - normal, 0.0f, 1.0f },
 			color,
 			{ 0.f, 0.f }
 		};
@@ -212,6 +259,93 @@ namespace gui {
 		m_Lines.indices[m_Lines.indexCount++] = m_Lines.vertexCount - 2;
 		m_Lines.indices[m_Lines.indexCount++] = m_Lines.vertexCount - 1;
 		m_Lines.indices[m_Lines.indexCount++] = m_Lines.vertexCount - 4;
+	}
+
+	void Context::DrawPolyLine(std::span<const Point> inputPoints, float width, const Color &color) {
+		if (inputPoints.size() < 2)
+			return;
+		if (inputPoints.size() < 3) {
+			DrawLine(inputPoints[0], inputPoints[1], width, color);
+			return;
+		}
+		if ((inputPoints.size() - 1) * 6 + m_Lines.indexCount > BATCH_MAX_INDICES) {
+			FlushLines();
+		}
+		if (((inputPoints.size() - 1) * 6) > BATCH_MAX_INDICES) {
+			for (std::size_t i = 0; i < inputPoints.size(); i += BATCH_MAX_INDICES / 6) {
+				DrawPolyLine(std::span(inputPoints.begin() + i,
+							inputPoints.begin() + i + std::clamp(BATCH_MAX_INDICES / 6ul + 1,
+								0ul, inputPoints.size() - i)),
+							width, color);
+			}
+			return;
+		}
+
+		const float halfWidth = width / 2.f;
+		std::vector<glm::vec2> points;
+		points.reserve(inputPoints.size());
+
+		for (const Point &p : inputPoints) {
+			if (!points.empty()) {
+				const glm::vec2 delta = glm::vec2{ p.x, p.y } - points.back();
+				if (glm::dot(delta, delta) <= 1e-10f)
+					continue;
+			}
+			points.emplace_back(p.x, p.y);
+		}
+
+		for (std::size_t i = 0; i < points.size(); ++i) {
+			glm::vec2 offset;
+			if (i == 0) {
+				const glm::vec2 dir = glm::normalize(points[1] - points[0]);
+				offset = glm::vec2{ -dir.y, dir.x } * halfWidth;
+			} else if (i + 1 == points.size()) {
+				const glm::vec2 dir = glm::normalize(points[i] - points[i - 1]);
+				offset = glm::vec2{ -dir.y, dir.x } * halfWidth;
+			} else {
+				const glm::vec2 prevDir = glm::normalize(points[i] - points[i - 1]);
+				const glm::vec2 nextDir = glm::normalize(points[i + 1] - points[i]);
+				const glm::vec2 prevNormal = glm::vec2{ -prevDir.y, prevDir.x };
+				const glm::vec2 nextNormal = glm::vec2{ -nextDir.y, nextDir.x };
+				const glm::vec2 normalSum = prevNormal + nextNormal;
+				if (glm::dot(normalSum, normalSum) <= 1e-10f) {
+					offset = nextNormal * halfWidth;
+				} else {
+					const glm::vec2 miter = normalSum / std::sqrt(glm::dot(normalSum, normalSum));
+					const float denom = glm::dot(miter, prevNormal);
+					if (std::abs(denom) <= 1e-5f) {
+						offset = nextNormal * halfWidth;
+					} else {
+						float miterLength = halfWidth / denom;
+						miterLength = std::clamp(miterLength,
+								-halfWidth * 4.f,
+								halfWidth * 4.f);
+						offset = miter * miterLength;
+					}
+				}
+			}
+
+			m_Lines.vertices[m_Lines.vertexCount++] = {
+				{ points[i] + offset, 0.0f, 1.0f },
+				color,
+				{ 0.f, 0.f }
+			};
+			m_Lines.vertices[m_Lines.vertexCount++] = {
+				{ points[i] - offset, 0.0f, 1.0f },
+				color,
+				{ 0.f, 0.f }
+			};
+		}
+		std::size_t vtxOffset = m_Lines.vertexCount - points.size() * 2;
+		for (std::size_t i = 0; i + 1 < points.size(); ++i) {
+			m_Lines.indices[m_Lines.indexCount + 0] = vtxOffset + i * 2;
+			m_Lines.indices[m_Lines.indexCount + 1] = vtxOffset + i * 2 + 1;
+			m_Lines.indices[m_Lines.indexCount + 2] = vtxOffset + (i + 1) * 2;
+			m_Lines.indices[m_Lines.indexCount + 3] = vtxOffset + (i + 1) * 2;
+			m_Lines.indices[m_Lines.indexCount + 4] = vtxOffset + i * 2 + 1;
+			m_Lines.indices[m_Lines.indexCount + 5] = vtxOffset + (i + 1) * 2 + 1;
+			m_Lines.indexCount += 6;
+		}
 	}
 
 	void Context::DrawGlyph(const Point &origin, const Color& color, const font::Glyph &glyph) {
@@ -276,11 +410,11 @@ namespace gui {
 			case GuiShader::Flat:
 				m_QuadFlatShader->Bind();
 				break;
-			case GuiShader::Text:
+			case GuiShader::Texture:
 				m_TextShader->Bind();
 				break;
 			default:
-				throw std::logic_error("Unknown shader");
+				throw core::InternalError("Unknown shader");
 		}
 		m_CurrentShader = shader;
 	}
@@ -291,12 +425,12 @@ namespace gui {
 				m_QuadFlatShader->Bind();
 				m_QuadFlatShader->SetUniform(name, value);
 				break;
-			case GuiShader::Text:
+			case GuiShader::Texture:
 				m_TextShader->Bind();
 				m_TextShader->SetUniform(name, value);
 				break;
 			default:
-				throw std::logic_error("Unknown shader");
+				throw core::InternalError("Unknown shader");
 		}
 		UseShader(m_CurrentShader);
 	}

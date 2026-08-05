@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeFont
  * Copyright (C) 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -19,7 +19,9 @@
 #include <fontCache.h>
 #include <cee/font/except.h>
 
-#include <format>
+#include <fmt/format.h>
+
+#include <algorithm>
 #include <unordered_map>
 #include <vector>
 
@@ -96,7 +98,8 @@ namespace font {
 		}
 		if (data->penX + bmp.width + 1 > page->width ||
 				data->penY + bmp.height + 1 > page->height) {
-			std::string msg = std::format("StoreGlyph(): Failed to store glyph in atlas. Size: {}x{} (max: {}x{})",
+			std::string msg = fmt::format("StoreGlyph(): Failed to store glyph in atlas. "
+					"Size: {}x{} (max: {}x{})",
 					bmp.width, bmp.height, page->width, page->height);
 			throw GlyphLoadingError(msg);
 		}
@@ -132,7 +135,7 @@ namespace font {
 			});
 
 		if (it == s_Entries.end()) {
-			throw PageMissingError(id);
+			throw PageMissingError(id, "Missing page");
 		}
 		return it->first;
 	}
@@ -146,7 +149,7 @@ namespace font {
 		auto it = std::find_if(s_Entries.begin(), s_Entries.end(),
 				[&](const Entry &entry){ return entry.first.id == id; });
 		if (it == s_Entries.end())
-			throw PageMissingError(std::format("page {} not present", id));
+			throw PageMissingError(id, "Missing page");
 		{
 			auto  &[ page, data ] = *it;
 			std::unique_lock pageLock(page.mutex);

@@ -1,5 +1,5 @@
 /*
- * CeeHealth
+ * ceeMPPM
  * Copyright (C) 2025 2026 Chloe Eather
  *
  * This program is free software: you can redistribute it and/or modify it under the
@@ -23,13 +23,14 @@
 #include <cee/mppm/rng.h>
 #include <cee/mppm/config.h>
 
-#include <cee/profiler/profiler.h>
+#include <cee/core/except.h>
 
-#include <cee/hal/hal.h>
+#include <cee/profiler/profiler.h>
 
 #include <cee/gui/gui.h>
 #include <cee/gui/box.h>
 #include <cee/gui/text.h>
+#include <cee/gui/plot.h>
 
 #include <glad/gles2.h>
 
@@ -65,178 +66,250 @@ MPPM::MPPM(int argc, char *argv[]) {
 	PROFILE_SCOPE("Initialization");
 	if (s_Instance) {
 		std::fprintf(stderr, "More than one instance of cee::MPPM is not allowed.");
-		std::exit(EXIT_FAILURE);
-		throw std::runtime_error("More than one instance of cee::MPPM is not allowed.");
+		throw core::UsageError("More than one instance of cee::MPPM is not allowed.");
 	}
 	s_Instance = this;
 
-	Log::Init();
-	hal::InitLogger();
-	Log::AddLogger(hal::GetLogger());
-	gui::InitLogger();
-	Log::AddLogger(gui::GetLogger());
+	m_Log = std::make_unique<Log>("MPPM", m_LogFile, m_LogLevel);
 
 	rng<int>::Init();
 
 	if (Input::Init() < 0) {
-		throw std::runtime_error("Failed to initialize input system");
+		throw core::InternalError("Failed to initialize input system");
 	}
 	Input::SetEventCallback(std::bind(&MPPM::OnEvent, this, std::placeholders::_1));
 
-	if (hal::GetGfxBackend() == HAL_GFX_BACKEND_NONE) {
-#if BUILD_HAL_DRM
-		hal::SetGfxBackend(HAL_GFX_BACKEND_DRM);
-#elif BUILD_HAL_X11
-		CEE_CORE_TRACE("Graphics DRM backend not detected, falling back to X11");
-		hal::SetGfxBackend(HAL_GFX_BACKEND_X11);
+	if (m_GfxBackend == platform::GfxContextType::PLATFORM_GFX_CONTEXT_NONE) {
+#if BUILD_PLATFORM_DRM
+		m_GfxBackend = platform::GfxContextType::PLATFORM_GFX_CONTEXT_DRM;
 #else
+		m_GfxBackend = platform::GfxContextType::PLATFORM_GFX_CONTEXT_X11;
+#endif
+	}
+
+	if (m_GfxBackend == platform::GfxContextType::PLATFORM_GFX_CONTEXT_DRM) {
+		CEE_CORE_DEBUG("Using DRM for rendering");
+		m_GfxContext = platform::GraphicsContext::Create(platform::GfxContextType::PLATFORM_GFX_CONTEXT_DRM,
+				m_Log->CreateChild("DRM"));
+	} else if (m_GfxBackend == platform::GfxContextType::PLATFORM_GFX_CONTEXT_X11) {
+		CEE_CORE_DEBUG("Using X11 for rendering");
+		m_GfxContext = platform::GraphicsContext::Create(platform::GfxContextType::PLATFORM_GFX_CONTEXT_X11,
+				m_Log->CreateChild("X11"));
+	} else {
 		CEE_CORE_ERROR("No graphics backend detected!");
-		throw std::runtime_error("No graphics backend detected");
-#endif
+		throw core::UsageError("No graphics backend detected");
 	}
-	if (hal::GetI2CBackend() == HAL_I2C_BACKEND_NONE) {
-#if BUILD_HAL_I2C_HW
-		hal::SetI2CBackend(HAL_I2C_BACKEND_HW);
-#elif BUILD_HAL_I2C_MOCK
-		CEE_CORE_TRACE("I2C hardware backend not detected, falling back to mock");
-		hal::SetI2CBackend(HAL_I2C_BACKEND_MOCK);
+
+	if (!m_GfxContext)
+		throw core::InternalError("Failed to create graphics context");
+
+	if (m_I2CBackend == platform::I2CContextType::PLATFORM_I2C_CONTEXT_NONE) {
+#if BUILD_PLATFORM_I2C_HW
+		m_I2CBackend = platform::I2CContextType::PLATFORM_I2C_CONTEXT_HW;
 #else
-		CEE_CORE_ERROR("No I2C backend detected!");
-		throw std::runtime_error("No I2C backend detected");
+		m_I2CBackend = platform::I2CContextType::PLATFORM_I2C_CONTEXT_MOCK;
 #endif
 	}
 
-	if (hal::Init()) {
-		CEE_CORE_ERROR("Failed to initialize hardware abstration layer!");
-		throw std::runtime_error("Failed to initialize hardware abstration layer!");
+	if (m_I2CBackend == platform::I2CContextType::PLATFORM_I2C_CONTEXT_HW) {
+		CEE_CORE_DEBUG("Using I2C interface {}", "/dev/i2c-0");
+		m_I2CController = platform::I2CController::Create("/dev/i2c-0",
+				platform::I2CContextType::PLATFORM_I2C_CONTEXT_HW,
+				m_Log->CreateChild("I2C"));
+	} else if (m_I2CBackend == platform::I2CContextType::PLATFORM_I2C_CONTEXT_MOCK) {
+		CEE_CORE_DEBUG("Using mock I2C interface");
+		m_I2CController = platform::I2CController::Create("/dev/i2c-0",
+				platform::I2CContextType::PLATFORM_I2C_CONTEXT_MOCK,
+				m_Log->CreateChild("I2C"));
+	} else {
+		CEE_CORE_ERROR("No I2C backend detected!");
+		throw core::UsageError("No I2C backend detected");
 	}
 
-	m_HalGfx = hal::GraphicsContext::Create();
-	m_HalGfx->Init();
+	if (!m_I2CController)
+		throw core::InternalError("Failed to create I2C interface");
 
-	cee::gui::Init();
+	m_GfxContext->Init();
+	m_Adc = std::make_unique<platform::PCF8591>(m_I2CController, 0x48);
+
+	gui::Init(m_Log->CreateChild("GUI"));
 }
 
 MPPM::~MPPM() {
-	cee::gui::Shutdown();
-	m_HalGfx->Shutdown();
-	hal::Shutdown();
-	cee::Input::Shutdown();
+	gui::Shutdown();
+	m_GfxContext->Shutdown();
+	m_I2CController.reset();
+	Input::Shutdown();
+	m_Log.reset();
 }
 
 int MPPM::Run() {
 	SetSigHandlers();
 
-	std::unique_ptr<cee::gui::Box> root = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> hbox = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> padBox = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> transBox = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> lesbianBox = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> transFlagStrip1 = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> transFlagStrip2 = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> transFlagStrip3 = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> transFlagStrip4 = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> transFlagStrip5 = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> lesbianFlagStrip1 = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> lesbianFlagStrip2 = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> lesbianFlagStrip3 = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> lesbianFlagStrip4 = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> lesbianFlagStrip5 = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> lesbianFlagStrip6 = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Box> lesbianFlagStrip7 = std::make_unique<cee::gui::Box>();
-	std::unique_ptr<cee::gui::Text> traText = std::make_unique<cee::gui::Text>(
-			"Trans \U0001F3F3\U0000FE0F\U0000200D\U0001F308",
-			24, gui::Color{ 0.1f, 0.1f, 0.1f, 1.f });
-	std::unique_ptr<cee::gui::Text> lesText = std::make_unique<cee::gui::Text>(
-			"Lesbian \U0001F2F2\U0000FE0F\U0000200D\U0001F308",
-			12, gui::Color{ 0.1f, 0.1f, 0.1f, 1.f });
+	auto root = gui::CreateNode<gui::Box>();
+	auto vbox = gui::CreateNode<gui::Box>();
+	auto line1Box = gui::CreateNode<gui::Box>();
+	auto line1GraphBox = gui::CreateNode<gui::Box>();
+	auto line1TextBox = gui::CreateNode<gui::Box>();
+	std::unique_ptr<gui::Plot> line1Plot = gui::CreateNode<gui::Plot>(
+			gui::Color{ 0.1f, 1.0f, 0.1f, 1.0f });
+	std::unique_ptr<gui::Text> line1Num = gui::CreateNode<gui::Text>(
+			"167", 48, gui::Color{ 0.1f, 1.0f, 0.1f, 1.0f });
+	auto line2Box = gui::CreateNode<gui::Box>();
+	auto line2GraphBox = gui::CreateNode<gui::Box>();
+	auto line2TextBox = gui::CreateNode<gui::Box>();
+	std::unique_ptr<gui::Plot> line2Plot = gui::CreateNode<gui::Plot>(
+			gui::Color{ 1.0f, 0.1f, 0.1f, 1.0f });
+	std::unique_ptr<gui::Text> line2Num = gui::CreateNode<gui::Text>(
+			"0", 48, gui::Color{ 1.0f, 0.1f, 0.1f, 1.0f });
+	auto line3Box = gui::CreateNode<gui::Box>();
+	auto line3GraphBox = gui::CreateNode<gui::Box>();
+	auto line3TextBox = gui::CreateNode<gui::Box>();
+	std::unique_ptr<gui::Plot> line3Plot = gui::CreateNode<gui::Plot>(
+			gui::Color{ 0.5f, 0.2f, 0.2f, 1.0f });
+	std::unique_ptr<gui::Text> line3Num = gui::CreateNode<gui::Text>(
+			"0", 48, gui::Color{ 0.5f, 0.2f, 0.2f, 1.0f });
 
 	{
 		PROFILE_SCOPE("Setup GUI");
-		root->SetStackDirection(cee::gui::Box::StackDirection::Horizontal);
-		cee::gui::SetRootNode(root.get());
 
-		hbox->SetStackDirection(cee::gui::Box::StackDirection::Horizontal);
+		m_LeadII.resize(1000, 0.f);
+		m_LeadIIPos = 0;
+		m_Pres.resize(1000, 0.f);
+		m_PresPos = 0;
+		m_Osc.resize(1000, 0.f);
+		m_OscPos = 0;
 
-		transBox->SetStackDirection(cee::gui::Box::StackDirection::Vertical);
-		padBox->Resize(100.f, 500.f);
-		padBox->SetStackDirection(cee::gui::Box::StackDirection::Vertical);
-		lesbianBox->SetStackDirection(cee::gui::Box::StackDirection::Vertical);
+		root->SetDebugName("root");
+		root->SetStackDirection(gui::Box::StackDirection::Horizontal);
+		gui::SetRootNode(root.get());
 
-		root->AddChild(hbox.get());
-		hbox->AddChild(lesbianBox.get());
-		hbox->AddChild(padBox.get());
-		hbox->AddChild(transBox.get());
+		vbox->SetDebugName("vbox");
+		line1Box->SetDebugName("line1Box");
+		line1GraphBox->SetDebugName("line1GraphBox");
+		line1TextBox->SetDebugName("line1TextBox");
+		line1Plot->SetDebugName("line1Graph");
+		line1Num->SetDebugName("line1Num");
+		line2Box->SetDebugName("line2Box");
+		line2GraphBox->SetDebugName("line2GraphBox");
+		line2TextBox->SetDebugName("line2TextBox");
+		line2Plot->SetDebugName("line2Graph");
+		line2Num->SetDebugName("line2Num");
+		line3Box->SetDebugName("line3Box");
+		line3GraphBox->SetDebugName("line3GraphBox");
+		line3TextBox->SetDebugName("line3TextBox");
+		line3Plot->SetDebugName("line3Graph");
+		line3Num->SetDebugName("line3Num");
+		
+		vbox->SetStackDirection(gui::Box::StackDirection::Vertical);
+		line1Box->SetStackDirection(gui::Box::StackDirection::Horizontal);
+		line1GraphBox->SetStackDirection(gui::Box::StackDirection::Horizontal);
+		line1TextBox->SetStackDirection(gui::Box::StackDirection::Horizontal);
+		line2Box->SetStackDirection(gui::Box::StackDirection::Horizontal);
+		line2GraphBox->SetStackDirection(gui::Box::StackDirection::Horizontal);
+		line2TextBox->SetStackDirection(gui::Box::StackDirection::Horizontal);
+		line3Box->SetStackDirection(gui::Box::StackDirection::Horizontal);
+		line3GraphBox->SetStackDirection(gui::Box::StackDirection::Horizontal);
+		line3TextBox->SetStackDirection(gui::Box::StackDirection::Horizontal);
 
-		transFlagStrip1->Resize(250.f, 100.f);
-		transFlagStrip1->SetColor({ .332f, .8f, .984f, 1.f });
-		transBox->AddChild(transFlagStrip1.get());
-		transFlagStrip2->Resize(250.f, 100.f);
-		transFlagStrip2->SetColor({ .965f, .656f, .719f, 1.f });
-		transBox->AddChild(transFlagStrip2.get());
-		transFlagStrip3->Resize(250.f, 100.f);
-		transFlagStrip3->SetColor({ 1.f, 1.f, 1.f, 1.f });
-		transBox->AddChild(transFlagStrip3.get());
-		transFlagStrip4->Resize(250.f, 100.f);
-		transFlagStrip4->SetColor({ .965f, .656f, .719f, 1.f });
-		transBox->AddChild(transFlagStrip4.get());
-		transFlagStrip5->Resize(250.f, 100.f);
-		transFlagStrip5->SetColor({ .332f, .8f, .984f, 1.f });
-		transBox->AddChild(transFlagStrip5.get());
+		line1Box->Resize(620.f, 250.f);
+		line1GraphBox->Resize(500.f, 250.f);
+		line1TextBox->Resize(120.f, 250.f);
+		line1Plot->ResizeData(1000);
+		line2Box->Resize(620.f, 250.f);
+		line2GraphBox->Resize(500.f, 250.f);
+		line2TextBox->Resize(120.f, 250.f);
+		line2Plot->ResizeData(1000);
+		line3Box->Resize(620.f, 250.f);
+		line3GraphBox->Resize(500.f, 250.f);
+		line3TextBox->Resize(120.f, 250.f);
+		line3Plot->ResizeData(1000);
 
-		lesbianFlagStrip1->Resize(250.f, 71.429f);
-		lesbianFlagStrip1->SetColor(gui::HexToColor(0xD52D00FF));
-		lesbianBox->AddChild(lesbianFlagStrip1.get());
-		lesbianFlagStrip2->Resize(250.f, 71.429f);
-		lesbianFlagStrip2->SetColor(gui::HexToColor(0xEF7627FF));
-		lesbianBox->AddChild(lesbianFlagStrip2.get());
-		lesbianFlagStrip3->Resize(250.f, 71.429f);
-		lesbianFlagStrip3->SetColor(gui::HexToColor(0xFF9A56FF));
-		lesbianBox->AddChild(lesbianFlagStrip3.get());
-		lesbianFlagStrip4->Resize(250.f, 71.429f);
-		lesbianFlagStrip4->SetColor(gui::HexToColor(0xFFFFFFFF));
-		lesbianBox->AddChild(lesbianFlagStrip4.get());
-		lesbianFlagStrip5->Resize(250.f, 71.429f);
-		lesbianFlagStrip5->SetColor(gui::HexToColor(0xD162A4FF));
-		lesbianBox->AddChild(lesbianFlagStrip5.get());
-		lesbianFlagStrip6->Resize(250.f, 71.429f);
-		lesbianFlagStrip6->SetColor(gui::HexToColor(0xB55690FF));
-		lesbianBox->AddChild(lesbianFlagStrip6.get());
-		lesbianFlagStrip7->Resize(250.f, 71.429f);
-		lesbianFlagStrip7->SetColor(gui::HexToColor(0xA30262FF));
-		lesbianBox->AddChild(lesbianFlagStrip7.get());
+		line1Plot->SetLineBreakWidth(10);
+		line2Plot->SetLineBreakWidth(10);
+		line3Plot->SetLineBreakWidth(10);
 
-		transFlagStrip1->AddChild(traText.get());
-		lesbianFlagStrip1->AddChild(lesText.get());
+		line1Plot->Show(true);
+		line1Num->Show(true);
+		line2Plot->Show(true);
+		line2Num->Show(true);
+		line3Plot->Show(true);
+		line3Num->Show(true);
+
+		root->AddChild(vbox.get());
+		vbox->AddChild(line1Box.get());
+		line1Box->AddChild(line1GraphBox.get());
+		line1Box->AddChild(line1TextBox.get());
+		line1GraphBox->AddChild(line1Plot.get());
+		line1TextBox->AddChild(line1Num.get());
+		vbox->AddChild(line2Box.get());
+		line2Box->AddChild(line2GraphBox.get());
+		line2Box->AddChild(line2TextBox.get());
+		line2GraphBox->AddChild(line2Plot.get());
+		line2TextBox->AddChild(line2Num.get());
+		vbox->AddChild(line3Box.get());
+		line3Box->AddChild(line3GraphBox.get());
+		line3Box->AddChild(line3TextBox.get());
+		line3GraphBox->AddChild(line3Plot.get());
+		line3TextBox->AddChild(line3Num.get());
 	}
 
 	std::chrono::time_point start = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<float, std::milli> delta;
+	std::chrono::duration<size_t, std::micro> delta;
 
 	m_Running = true;
 	while (m_Running) {
 		PROFILE_SCOPE("Main loop");
-		float windowWidth = static_cast<float>(m_HalGfx->GetWidth());
-		float windowHeight = static_cast<float>(m_HalGfx->GetHeight());
-		cee::gui::BeginFrame({ windowWidth, windowHeight });
+
+		float windowWidth = static_cast<float>(m_GfxContext->GetWidth());
+		float windowHeight = static_cast<float>(m_GfxContext->GetHeight());
+		gui::BeginFrame({ windowWidth, windowHeight });
+		line1Plot->SetData(m_LeadII.data(), m_LeadII.size());
+		line1Plot->SetLineBreakPos(m_LeadIIPos);
+		line2Plot->SetData(m_Pres.data(), m_Pres.size());
+		line2Plot->SetLineBreakPos(m_PresPos);
+		line3Plot->SetData(m_Osc.data(), m_Osc.size());
+		line3Plot->SetLineBreakPos(m_OscPos);
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		cee::gui::Render({ windowWidth, windowHeight });
-		cee::gui::EndFrame();
-		m_HalGfx->SwapBuffers();
+		gui::Render({ windowWidth, windowHeight });
+		gui::EndFrame();
+		m_GfxContext->SwapBuffers();
 		PROFILER_FRAME_MARK();
 		{
+			using std::chrono::high_resolution_clock;
 			PROFILE_SCOPE("Input");
+
 			ApplicationPageFlip flip;
 			OnEvent(flip);
+
+			m_Adc->SendControl(0, false, platform::PCF8591::InputMode::SINGLE_ENDED, false);
+			uint8_t adcCh0 = m_Adc->Read();
+			m_LeadII[m_LeadIIPos++] = adcCh0 / 255.f;
+			if (m_LeadIIPos == 1000) {
+				m_LeadIIPos = 0;
+			}
+			m_Adc->SendControl(1, false, platform::PCF8591::InputMode::SINGLE_ENDED, false);
+			uint8_t adcCh1 = m_Adc->Read();
+			m_Pres[m_PresPos++] = adcCh1 / 255.f;
+			if (m_PresPos == 1000) {
+				m_PresPos = 0;
+			}
+			m_Adc->SendControl(2, false, platform::PCF8591::InputMode::SINGLE_ENDED, false);
+			uint8_t adcCh2 = m_Adc->Read();
+			m_Osc[m_OscPos++] = adcCh2 / 255.f;
+			if (m_OscPos == 1000) {
+				m_OscPos = 0;
+			}
+
 			Input::Poll();
-			if (cee::gui::HandleEvents() < 0) {
+			if (gui::HandleEvents() < 0) {
 				CEE_CORE_WARN("Failed to handle GUI events");
 			}
 
-			delta = std::chrono::high_resolution_clock::now() - start;;
-			start = std::chrono::high_resolution_clock::now();
-			ApplicationTickEvent tick(delta.count());
+			delta = std::chrono::duration_cast<std::chrono::microseconds>(high_resolution_clock::now() - start);
+			start = high_resolution_clock::now();
+			ApplicationTickEvent tick(static_cast<float>(delta.count()) / 1000.f);
 			OnEvent(tick);
 		}
 	}
@@ -324,9 +397,9 @@ void MPPM::ParseCommandLineArgs(int argc, char *argv[]) {
 		switch (opt) {
 		case 'g':
 			if (strcmp(optarg, "drm") == 0) {
-				hal::SetGfxBackend(HAL_GFX_BACKEND_DRM);
+				m_GfxBackend = platform::GfxContextType::PLATFORM_GFX_CONTEXT_DRM;
 			} else if (strcmp(optarg, "x11") == 0) {
-				hal::SetGfxBackend(HAL_GFX_BACKEND_X11);
+				m_GfxBackend = platform::GfxContextType::PLATFORM_GFX_CONTEXT_X11;
 			} else {
 				std::fprintf(stderr, "Invalid graphics backend: %s\n", optarg);
 				PrintHelpMessage(argv[0]);
@@ -334,9 +407,9 @@ void MPPM::ParseCommandLineArgs(int argc, char *argv[]) {
 			break;
 		case 'i':
 			if (strcmp(optarg, "hw") == 0) {
-				hal::SetI2CBackend(HAL_I2C_BACKEND_HW);
+				m_I2CBackend = platform::I2CContextType::PLATFORM_I2C_CONTEXT_HW;
 			} else if (strcmp(optarg, "mock") == 0) {
-				hal::SetI2CBackend(HAL_I2C_BACKEND_MOCK);
+				m_I2CBackend = platform::I2CContextType::PLATFORM_I2C_CONTEXT_MOCK;
 			} else {
 				std::fprintf(stderr, "Invalid i2c backend: %s\n", optarg);
 				PrintHelpMessage(argv[0]);
@@ -344,15 +417,15 @@ void MPPM::ParseCommandLineArgs(int argc, char *argv[]) {
 			break;
 		case 'l':
 			if (strcmp(optarg, "debug") == 0) {
-				Log::SetLogLevel(spdlog::level::debug);
+				m_LogLevel = spdlog::level::debug;
 			} else if (strcmp(optarg, "trace") == 0) {
-				Log::SetLogLevel(spdlog::level::trace);
+				m_LogLevel = spdlog::level::trace;
 			} else if (strcmp(optarg, "info") == 0) {
-				Log::SetLogLevel(spdlog::level::info);
+				m_LogLevel = spdlog::level::info;
 			} else if (strcmp(optarg, "warn") == 0) {
-				Log::SetLogLevel(spdlog::level::warn);
+				m_LogLevel = spdlog::level::warn;
 			} else if (strcmp(optarg, "error") == 0) {
-				Log::SetLogLevel(spdlog::level::err);
+				m_LogLevel = spdlog::level::err;
 			} else {
 				std::fprintf(stderr, "Invalid log level: %s\n", optarg);
 				PrintHelpMessage(argv[0]);
@@ -363,7 +436,7 @@ void MPPM::ParseCommandLineArgs(int argc, char *argv[]) {
 				std::fprintf(stderr, "Log file path must be absolute: %s\n", optarg);
 				PrintHelpMessage(argv[0]);
 			}
-			Log::SetLogLocation(optarg);
+			m_LogFile = optarg;
 			break;
 		}
 		case 'h':
@@ -386,7 +459,7 @@ static void PrintHelpMessage(const char *cmd) {
 	std::printf("\t-h, --help       Show this help message and exit\n");
 	std::printf("\t-i <backend>     Select i2c backend. {hw|mock} default: hw\n");
 	std::printf("\t-l <level>       Set log level {debug|trace|info|warn|error} default: info\n");
-	std::printf("\t--logfile=<file> Set log file path.");
+	std::printf("\t--logfile=<file> Set log file location.");
 	std::printf("\t                 default: $HOME/.local/share/ceeMPPM/\n");
 	std::printf("\t-v, --version    Show version information and exit\n");
 	std::exit(0);
